@@ -1,0 +1,121 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Sources">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Sources\netasio">
+      <UniqueIdentifier>{f23ad69d-e418-4735-855a-7e1635b63ad9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sources\handlers">
+      <UniqueIdentifier>{0cf0b0c3-b8d9-4e64-9af8-a645cd2a7c56}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Sources\DataContainer.cpp">
+      <Filter>Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Deserializer.cpp">
+      <Filter>Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Senla1.cpp">
+      <Filter>Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Serializer.cpp">
+      <Filter>Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Value.cpp">
+      <Filter>Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\BasePeer.cpp">
+      <Filter>Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\netasio\Connector.cpp">
+      <Filter>Sources\netasio</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\HeartbeatHandler.cpp">
+      <Filter>Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\netasio\AsioSocketChannel.cpp">
+      <Filter>Sources\netasio</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\netasio\ChannelPipeline.cpp">
+      <Filter>Sources\netasio</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\handlers\ReliableSocketHandler.cpp">
+      <Filter>Sources\handlers</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\netasio\AbstractSocketChannel.cpp">
+      <Filter>Sources\netasio</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Sources\CircularBuffer.h">
+      <Filter>Sources</Filter>
+    </ClInclude>
+    <ClInclude Include="Sources\DataContainer.h">
+      <Filter>Sources</Filter>
+    </ClInclude>
+    <ClInclude Include="Sources\Deserializer.h">
+      <Filter>Sources</Filter>
+    </ClInclude>
+    <ClInclude Include="Sources\Serializer.h">
+      <Filter>Sources</Filter>
+    </ClInclude>
+    <ClInclude Include="Sources\Value.h">
+      <Filter>Sources</Filter>
+    </ClInclude>
+    <ClInclude Include="Log.h">
+      <Filter>Sources</Filter>
+    </ClInclude>
+    <ClInclude Include="Sources\BasePeer.h">
+      <Filter>Sources</Filter>
+    </ClInclude>
+    <ClInclude Include="Sources\netasio\Connector.h">
+      <Filter>Sources\netasio</Filter>
+    </ClInclude>
+    <ClInclude Include="Sources\HeartbeatHandler.h">
+      <Filter>Sources</Filter>
+    </ClInclude>
+    <ClInclude Include="Sources\netasio\AbstractSocketChannel.h">
+      <Filter>Sources\netasio</Filter>
+    </ClInclude>
+    <ClInclude Include="Sources\netasio\AsioSocketChannel.h">
+      <Filter>Sources\netasio</Filter>
+    </ClInclude>
+    <ClInclude Include="Sources\netasio\Bootstrap.h">
+      <Filter>Sources\netasio</Filter>
+    </ClInclude>
+    <ClInclude Include="Sources\netasio\ChannelHandler.h">
+      <Filter>Sources\netasio</Filter>
+    </ClInclude>
+    <ClInclude Include="Sources\netasio\ChannelOptions.h">
+      <Filter>Sources\netasio</Filter>
+    </ClInclude>
+    <ClInclude Include="Sources\netasio\ChannelPipeline.h">
+      <Filter>Sources\netasio</Filter>
+    </ClInclude>
+    <ClInclude Include="Sources\netasio\ConnectionStatus.h">
+      <Filter>Sources\netasio</Filter>
+    </ClInclude>
+    <ClInclude Include="Sources\netasio\MessageObj.h">
+      <Filter>Sources\netasio</Filter>
+    </ClInclude>
+    <ClInclude Include="Sources\netasio\MessageBuffer.h">
+      <Filter>Sources\netasio</Filter>
+    </ClInclude>
+    <ClInclude Include="Sources\handlers\Messages.h">
+      <Filter>Sources\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="Sources\handlers\ReliableSocketHandler.h">
+      <Filter>Sources\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="Sources\handlers\SendParameters.h">
+      <Filter>Sources\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="Sources\handlers\TcpSockethandler.h">
+      <Filter>Sources\handlers</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

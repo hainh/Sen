@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Senla.js Test</title>
+    <script type="text/javascript" src="../sdk/Sen.js"></script>
+</head>
+<body>
+
+<script type="text/javascript">
+
+    var peer = new Senla.PeerBase();
+
+    peer.onStatusChanged = function (status) {
+        switch (status) {
+            case Senla.Status.CONNECTED:
+                Senla.Logger.debug("connected");
+                break;
+            case Senla.Status.DISCONNECTED:
+                Senla.Logger.debug("disconnected");
+                break;
+            default:
+                Senla.Logger.debug("disconnecting");
+                break;
+        }
+    }
+
+    peer.onEvent = function (eventData, encrypted) {
+        Senla.Logger.debug(eventData.toString());
+        eventData
+    }
+
+    peer.onResponse = function (opData, encrypted) {
+        Senla.Logger.debug(opData.toString());
+    }
+
+    peer.connect("ws://127.0.0.1:9091");
+
+// var eventData = new Senla.Data.DataContainer(0, {
+// 	1: Senla.Bool(1),
+// 	2: Senla.BoolArray([1, 0, 3, true, true, false, 0]),
+// 	3: Senla.Int32(2341),
+// 	4: Senla.Int32Array([2341, 28482, 1235127348]),
+// 	5: Senla.UInt64(8828376237479872),
+// 	6: Senla.UInt64Array([234238, 23098234984092, 32389383902]),
+// 	7: Senla.String("kemkem"),
+// 	8: Senla.StringArray(["kem1", "kem2"]),
+// 	9: Senla.Float(8323.2342),
+// 	10: Senla.FloatArray([2834.2342, 34289, 23792739487]),
+// 	11: Senla.Double(923742739749823),
+// 	12: Senla.DoubleArray([23987482323874.982374, 982738749823498]),
+// 	13: Senla.ByteArray([234, 23, 134]),
+// 	14: Senla.Byte(11)
+// }).asOperationData();
+// var bytes = Senla.Data.Serialize(eventData);
+// console.log(bytes.length, bytes.join(", "));
+
+// var data = Senla.Data.DeserializeData(bytes);
+// console.log(data);
+// console.log(data.toString());
+</script>
+
+</body>
+</html>

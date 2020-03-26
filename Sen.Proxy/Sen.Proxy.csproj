@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <StartupObject>Sen.Proxy.SenProxy</StartupObject>
+    <ApplicationIcon />
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\DotNetty\src\DotNetty.Buffers\DotNetty.Buffers.csproj" />
+    <ProjectReference Include="..\..\DotNetty\src\DotNetty.Codecs.Http\DotNetty.Codecs.Http.csproj" />
+    <ProjectReference Include="..\..\DotNetty\src\DotNetty.Codecs\DotNetty.Codecs.csproj" />
+    <ProjectReference Include="..\..\DotNetty\src\DotNetty.Common\DotNetty.Common.csproj" />
+    <ProjectReference Include="..\..\DotNetty\src\DotNetty.Handlers\DotNetty.Handlers.csproj" />
+    <ProjectReference Include="..\..\DotNetty\src\DotNetty.Transport.Libuv\DotNetty.Transport.Libuv.csproj" />
+    <ProjectReference Include="..\..\DotNetty\src\DotNetty.Transport\DotNetty.Transport.csproj" />
+  </ItemGroup>
+
+</Project>
