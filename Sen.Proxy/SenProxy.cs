@@ -16,14 +16,65 @@ using System.Text;
 using DotNetty.Buffers;
 using DotNetty.Common.Utilities;
 using System.Diagnostics;
+using Orleans;
+using Sen.OrleansInterfaces;
+using Microsoft.Extensions.Logging;
 
 namespace Sen.Proxy
 {
     public class SenProxy
     {
-        public static void Main()
+        public static async Task Main()
         {
-            RunServer().Wait();
+            await Task.WhenAny(RunServer(), RunOrleans());
+        }
+
+        static async Task<int> RunOrleans()
+        {
+            try
+            {
+                // Configure a client and connect to the service.
+                var client = new ClientBuilder()
+                    .UseLocalhostClustering(serviceId: "HelloWorldApp", clusterId: "dev")
+                    .ConfigureLogging(logging => logging.AddConsole())
+                    .Build();
+
+                await client.Connect(CreateRetryFilter());
+                Console.WriteLine("Client successfully connect to silo host");
+
+                // Use the connected client to call a grain, writing the result to the terminal.
+                var friend = client.GetGrain<IProxyConnection>(0);
+                var response = await friend.Test("Good morning, my friend!");
+                Console.WriteLine("\n\n{0}\n\n", response);
+
+                Console.ReadKey();
+                return 0;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                Console.ReadKey();
+                return 1;
+            }
+        }
+
+        private static Func<Exception, Task<bool>> CreateRetryFilter(int maxAttempts = 5)
+        {
+            var attempt = 0;
+            return RetryFilter;
+
+            async Task<bool> RetryFilter(Exception exception)
+            {
+                attempt++;
+                Console.WriteLine($"Cluster client attempt {attempt} of {maxAttempts} failed to connect to cluster.  Exception: {exception}");
+                if (attempt > maxAttempts)
+                {
+                    return false;
+                }
+
+                await Task.Delay(TimeSpan.FromSeconds(4));
+                return true;
+            }
         }
 
         static async Task RunServer()
@@ -47,22 +98,15 @@ namespace Sen.Proxy
                         .ChildHandler(new ActionChannelInitializer<IChannel>(channel =>
                         {
                             IChannelPipeline pipeline = channel.Pipeline;
-                            if ((channel.LocalAddress as IPEndPoint).Port == 9090)
-                            {
-                                pipeline.AddLast(new HttpServerCodec());
-                                pipeline.AddLast(new HttpObjectAggregator(65536));
-                                pipeline.AddLast(new WebSocketServerHandler());
-                            }
-                            else
-                            {
-                                pipeline.AddLast(new HttpServerCodec());
-                                pipeline.AddLast(new HttpObjectAggregator(65536));
-                                pipeline.AddLast(new MyHandler());
-                            }
+                            pipeline.AddLast(new HttpServerCodec());
+                            pipeline.AddLast(new HttpObjectAggregator(65536));
+                            pipeline.AddLast(new WebSocketServerHandler());
+                            
                         }));
 
                 IChannel bootstrapChannel = await bootstrap.BindAsync(IPAddress.Loopback, 9090);
                 IChannel nextChannel = await bootstrap.BindAsync(IPAddress.Loopback, 9091);
+                Console.WriteLine("Websocket listening");
                 Console.ReadLine();
                 await bootstrapChannel.CloseAsync();
                 await nextChannel.CloseAsync();
@@ -72,121 +116,6 @@ namespace Sen.Proxy
                 await workGroup.ShutdownGracefullyAsync();
                 await bossGroup.ShutdownGracefullyAsync();
             }
-        }
-    }
-
-    public class MyHandler : SimpleChannelInboundHandler<object>
-    {
-        const string WebsocketPath = "/websocket";
-
-        WebSocketServerHandshaker handshaker;
-
-        protected override void ChannelRead0(IChannelHandlerContext ctx, object msg)
-        {
-            if (msg is IFullHttpRequest request)
-            {
-                this.HandleHttpRequest(ctx, request);
-            }
-            else if (msg is WebSocketFrame frame)
-            {
-                this.HandleWebSocketFrame(ctx, frame);
-            }
-        }
-
-        public override void ChannelReadComplete(IChannelHandlerContext context) => context.Flush();
-
-        void HandleHttpRequest(IChannelHandlerContext ctx, IFullHttpRequest req)
-        {
-            // Handle a bad request.
-            if (!req.Result.IsSuccess)
-            {
-                SendHttpResponse(ctx, req, new DefaultFullHttpResponse(Http11, BadRequest));
-                return;
-            }
-
-            // Allow only GET methods.
-            if (!Equals(req.Method, HttpMethod.Get))
-            {
-                SendHttpResponse(ctx, req, new DefaultFullHttpResponse(Http11, Forbidden));
-                return;
-            }
-
-            // Handshake
-            var wsFactory = new WebSocketServerHandshakerFactory(
-                GetWebSocketLocation(req), null, true, 5 * 1024 * 1024);
-            this.handshaker = wsFactory.NewHandshaker(req);
-            if (this.handshaker == null)
-            {
-                WebSocketServerHandshakerFactory.SendUnsupportedVersionResponse(ctx.Channel);
-            }
-            else
-            {
-                this.handshaker.HandshakeAsync(ctx.Channel, req);
-            }
-        }
-
-        void HandleWebSocketFrame(IChannelHandlerContext ctx, WebSocketFrame frame)
-        {
-            // Check for closing frame
-            if (frame is CloseWebSocketFrame)
-            {
-                this.handshaker.CloseAsync(ctx.Channel, (CloseWebSocketFrame)frame.Retain());
-                return;
-            }
-
-            if (frame is PingWebSocketFrame)
-            {
-                ctx.WriteAsync(new PongWebSocketFrame((IByteBuffer)frame.Content.Retain()));
-                return;
-            }
-
-            if (frame is TextWebSocketFrame)
-            {
-                // Echo the frame
-                ctx.WriteAsync(frame.Retain());
-                return;
-            }
-
-            if (frame is BinaryWebSocketFrame)
-            {
-                // Echo the frame
-                ctx.WriteAsync(frame.Retain());
-            }
-        }
-
-        static void SendHttpResponse(IChannelHandlerContext ctx, IFullHttpRequest req, IFullHttpResponse res)
-        {
-            // Generate an error page if response getStatus code is not OK (200).
-            if (res.Status.Code != 200)
-            {
-                IByteBuffer buf = Unpooled.CopiedBuffer(Encoding.UTF8.GetBytes(res.Status.ToString()));
-                res.Content.WriteBytes(buf);
-                buf.Release();
-                HttpUtil.SetContentLength(res, res.Content.ReadableBytes);
-            }
-
-            // Send the response and close the connection if necessary.
-            Task task = ctx.Channel.WriteAndFlushAsync(res);
-            if (!HttpUtil.IsKeepAlive(req) || res.Status.Code != 200)
-            {
-                task.ContinueWith((t, c) => ((IChannelHandlerContext)c).CloseAsync(),
-                    ctx, TaskContinuationOptions.ExecuteSynchronously);
-            }
-        }
-
-        public override void ExceptionCaught(IChannelHandlerContext ctx, Exception e)
-        {
-            Console.WriteLine($"{nameof(MyHandler)} {e}");
-            ctx.CloseAsync();
-        }
-
-        protected virtual string GetWebSocketLocation(IFullHttpRequest req)
-        {
-            bool result = req.Headers.TryGet(HttpHeaderNames.Host, out ICharSequence value);
-            Debug.Assert(result, "Host header does not exist.");
-            string location = value.ToString() + WebsocketPath;
-
-            return "ws://" + location;
         }
     }
 }

@@ -52,25 +52,6 @@ namespace Sen.Proxy
                 return;
             }
 
-            // Send the demo page and favicon.ico
-            if ("/".Equals(req.Uri))
-            {
-                IByteBuffer content = Unpooled.WrappedBuffer(Encoding.ASCII.GetBytes("OK"));
-                var res = new DefaultFullHttpResponse(Http11, OK, content);
-
-                res.Headers.Set(HttpHeaderNames.ContentType, "text/html; charset=UTF-8");
-                HttpUtil.SetContentLength(res, content.ReadableBytes);
-
-                SendHttpResponse(ctx, req, res);
-                return;
-            }
-            if ("/favicon.ico".Equals(req.Uri))
-            {
-                var res = new DefaultFullHttpResponse(Http11, NotFound);
-                SendHttpResponse(ctx, req, res);
-                return;
-            }
-
             // Handshake
             var wsFactory = new WebSocketServerHandshakerFactory(
                 GetWebSocketLocation(req), null, true, 5 * 1024 * 1024);
@@ -129,14 +110,14 @@ namespace Sen.Proxy
             Task task = ctx.Channel.WriteAndFlushAsync(res);
             if (!HttpUtil.IsKeepAlive(req) || res.Status.Code != 200)
             {
-                task.ContinueWith((t, c) => ((IChannelHandlerContext)c).CloseAsync(), 
+                task.ContinueWith((t, c) => ((IChannelHandlerContext)c).CloseAsync(),
                     ctx, TaskContinuationOptions.ExecuteSynchronously);
             }
         }
 
         public override void ExceptionCaught(IChannelHandlerContext ctx, Exception e)
         {
-            Console.WriteLine($"{nameof(WebSocketServerHandler)} {0}", e);
+            Console.WriteLine($"{nameof(WebSocketServerHandler)} {e}");
             ctx.CloseAsync();
         }
 
@@ -144,8 +125,8 @@ namespace Sen.Proxy
         {
             bool result = req.Headers.TryGet(HttpHeaderNames.Host, out ICharSequence value);
             Debug.Assert(result, "Host header does not exist.");
-            string location= value.ToString() + WebsocketPath;
-            
+            string location = value.ToString() + WebsocketPath;
+
             return "ws://" + location;
         }
     }
