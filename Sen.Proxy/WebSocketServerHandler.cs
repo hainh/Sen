@@ -23,7 +23,7 @@ namespace Sen.Proxy
 
         WebSocketServerHandshaker handshaker;
 
-        IProxyConnection proxyConnection;
+        //IProxyConnection proxyConnection;
 
         protected override void ChannelRead0(IChannelHandlerContext ctx, object msg)
         {
@@ -65,6 +65,10 @@ namespace Sen.Proxy
             }
             else
             {
+                // Create the grain to communicate with the server (silo)
+                //proxyConnection = SenProxy.OrleansClient.GetGrain<IProxyConnection>(Guid.NewGuid());
+                //proxyConnection.InitConnection(ctx.Channel.LocalAddress, ctx.Channel.RemoteAddress);
+
                 this.handshaker.HandshakeAsync(ctx.Channel, req);
             }
         }
@@ -84,21 +88,25 @@ namespace Sen.Proxy
                 return;
             }
 
-            if (frame is TextWebSocketFrame)
+            if (frame is BinaryWebSocketFrame || frame is ContinuationWebSocketFrame)
             {
-                // Echo the frame
+                //var buffer = (IByteBuffer)Unpooled.Buffer(frame.Content.Capacity, frame.Content.Capacity).Retain();
+                //frame.Content.ReadBytes(buffer);
+                //proxyConnection.Read(buffer.Array).ContinueWith(task =>
+                //{
+                //    buffer.Release();
+                //    if (task.Result != null)
+                //    {
+                //        var result = Unpooled.WrappedBuffer(task.Result);
+                //        var f = new BinaryWebSocketFrame(result);
+                //        ctx.WriteAndFlushAsync(f);
+                //    }
+                //});
                 ctx.WriteAsync(frame.Retain());
                 return;
             }
 
-            if (frame is BinaryWebSocketFrame)
-            {
-                // Echo the frame
-                ctx.WriteAsync(frame.Retain());
-                return;
-            }
-
-            // Not accept other frames
+            // Not accept other frames, like TextWebSocketFrame
             ctx.CloseAsync();
         }
 
@@ -139,7 +147,7 @@ namespace Sen.Proxy
 
         public override void ChannelInactive(IChannelHandlerContext context)
         {
-
+            //proxyConnection.Disconnect();
             base.ChannelInactive(context);
         }
     }

@@ -8,49 +8,59 @@
 
 <script type="text/javascript">
 
+    Sen.Logger.setLevel(Logger.INFO);
+
     var peer = new Sen.PeerBase();
 
     peer.onStatusChanged = function (status) {
         switch (status) {
             case Sen.Status.CONNECTED:
-                Sen.Logger.debug("connected");
+                Sen.Logger.info("connected");
+                for (var i = 0; i < total; i++)
+                    peer.sendOperationRequest(data);
                 break;
             case Sen.Status.DISCONNECTED:
-                Sen.Logger.debug("disconnected");
+                Sen.Logger.info("disconnected");
                 break;
             default:
-                Sen.Logger.debug("disconnecting");
+                Sen.Logger.info("disconnecting");
                 break;
         }
     }
 
     peer.onEvent = function (eventData, encrypted) {
-        Sen.Logger.debug(eventData.toString());
+        Sen.Logger.debug('Event', eventData.toString());
         eventData
     }
 
+    var total = 3000;
+    var count = 0;
     peer.onResponse = function (opData, encrypted) {
-        Sen.Logger.debug(opData.toString());
+        Sen.Logger.debug('Response', opData.toString());
+
+        count++;
+        if (count % 100 === 0)
+            Sen.Logger.info('Done', count * 100 / total + '%');
     }
 
-    peer.connect("ws://127.0.0.1:9091");
+    peer.connect("ws://127.0.0.1:9091/w");
 
-// var eventData = new Sen.Data.DataContainer(0, {
-// 	1: Sen.Bool(1),
-// 	2: Sen.BoolArray([1, 0, 3, true, true, false, 0]),
-// 	3: Sen.Int32(2341),
-// 	4: Sen.Int32Array([2341, 28482, 1235127348]),
-// 	5: Sen.UInt64(8828376237479872),
-// 	6: Sen.UInt64Array([234238, 23098234984092, 32389383902]),
-// 	7: Sen.String("kemkem"),
-// 	8: Sen.StringArray(["kem1", "kem2"]),
-// 	9: Sen.Float(8323.2342),
-// 	10: Sen.FloatArray([2834.2342, 34289, 23792739487]),
-// 	11: Sen.Double(923742739749823),
-// 	12: Sen.DoubleArray([23987482323874.982374, 982738749823498]),
-// 	13: Sen.ByteArray([234, 23, 134]),
-// 	14: Sen.Byte(11)
-// }).asOperationData();
+     var data = new Sen.Data.DataContainer(0, {
+ 	    1: Sen.Bool(1),
+ 	    2: Sen.BoolArray([1, 0, 3, true, true, false, 0]),
+ 	    3: Sen.Int32(2341),
+ 	    4: Sen.Int32Array([2341, 28482, 1235127348]),
+ 	    5: Sen.UInt64(8828376237479872),
+ 	    6: Sen.UInt64Array([234238, 23098234984092, 32389383902]),
+ 	    7: Sen.String("kemkem"),
+ 	    8: Sen.StringArray(["kem1", "kem2"]),
+ 	    9: Sen.Float(8323.2342),
+ 	    10: Sen.FloatArray([2834.2342, 34289, 23792739487]),
+ 	    11: Sen.Double(923742739749823),
+ 	    12: Sen.DoubleArray([23987482323874.982374, 982738749823498]),
+ 	    13: Sen.ByteArray([234, 23, 134]),
+ 	    14: Sen.Byte(11)
+     }).asOperationData();
 // var bytes = Sen.Data.Serialize(eventData);
 // console.log(bytes.length, bytes.join(", "));
 

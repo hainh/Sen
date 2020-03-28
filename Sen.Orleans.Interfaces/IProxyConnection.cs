@@ -1,13 +1,13 @@
 ﻿using System;
+using System.Net;
 using System.Threading.Tasks;
 
 namespace Sen.OrleansInterfaces
 {
     public interface IProxyConnection : Orleans.IGrainWithGuidKey
     {
-        Task<string> Test(string message);
-        Task<bool> InitConnection();
-        Task Subscribe(IDataObserver observer);
-        Task UnSubscribe(IDataObserver observer);
+        Task InitConnection(EndPoint local, EndPoint remote);
+        Task<byte[]> Read(byte[] data); // Read data from client
+        Task Disconnect();
     }
 }

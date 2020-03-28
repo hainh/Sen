@@ -151,7 +151,7 @@ Sen = {};
 							this_.onResponse(data, false);
 							break;
 						case types.PingData:
-							this_._sendPingData(data);
+							this_._sendPingData__removethismethod__(data);
 							break;
 						case types.ConfigData:
 							break;
@@ -168,7 +168,7 @@ Sen = {};
 					this_.socket.close();
 				}
 			},
-			sendOperatinRequest: function(opData) {
+			sendOperationRequest: function(opData) {
 				if (opData["sc"] === Sen.Data.ServiceTypes.OperationData) {
 					this._send(opData);
 				}
@@ -182,7 +182,7 @@ Sen = {};
 			getPingTime: function() {
 				return this.__pingTime;
 			},
-			_sendPingData: function(pingData) {
+			_sendPingData__removethismethod__: function(pingData) {
 				this.__pingTime = pingData.get(1);
 				this._send(pingData);
 			},
@@ -190,11 +190,11 @@ Sen = {};
 				var rawData = Sen.Data.Serialize(data),
 					this_ = this;
 				if (this_.isConnected) {
-					Sen.Logger.debug(data.toString(this_.dataCodes, this_.opCodes));
+					Sen.Logger.debug('Send', data.toString(this_.dataCodes, this_.opCodes));
 					this_.socket.send(rawData);
 				}
 			},
-			_timeoutDisconnect: function() {
+			_timeoutDisconnect__removethismethod__: function() {
 				var this_ = this;
 				this_.onStatusChanged(Status.DISCONNECTED_CONNECTION_LOST);
 				if (this_.isConnected) {

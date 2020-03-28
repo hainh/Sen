@@ -28,7 +28,8 @@ namespace Sen.Proxy
 
         public static async Task Main()
         {
-            await Task.WhenAll(RunNettyServer(), RunOrleansProxyClient());
+            await RunNettyServer();
+            //await Task.WhenAll(RunNettyServer(), RunOrleansProxyClient());
         }
 
         static async Task<int> RunOrleansProxyClient()
@@ -37,17 +38,12 @@ namespace Sen.Proxy
             {
                 // Configure a client and connect to the service.
                 OrleansClient = new ClientBuilder()
-                    .UseLocalhostClustering(serviceId: "SenProxyApp", clusterId: "dev")
+                    .UseLocalhostClustering(serviceId: "SenServer", clusterId: "dev")
                     .ConfigureLogging(logging => logging.AddConsole())
                     .Build();
 
                 await OrleansClient.Connect(RetryFilter);
-                Console.WriteLine("Client successfully connect to silo host");
-
-                // Use the connected client to call a grain, writing the result to the terminal.
-                var friend = OrleansClient.GetGrain<IProxyConnection>(Guid.NewGuid());
-                var response = await friend.Test("Good morning, my friend!");
-                Console.WriteLine("\n\n{0}\n\n", response);
+                Console.WriteLine("Proxy successfully connect to silo host");
 
                 Console.ReadKey();
                 return 0;
