@@ -15,12 +15,15 @@ namespace Sen.Proxy
 
     using static DotNetty.Codecs.Http.HttpVersion;
     using static DotNetty.Codecs.Http.HttpResponseStatus;
+    using Sen.OrleansInterfaces;
 
     public class WebSocketServerHandler : SimpleChannelInboundHandler<object>
     {
         const string WebsocketPath = "/websocket";
 
         WebSocketServerHandshaker handshaker;
+
+        IProxyConnection proxyConnection;
 
         protected override void ChannelRead0(IChannelHandlerContext ctx, object msg)
         {
@@ -92,7 +95,11 @@ namespace Sen.Proxy
             {
                 // Echo the frame
                 ctx.WriteAsync(frame.Retain());
+                return;
             }
+
+            // Not accept other frames
+            ctx.CloseAsync();
         }
 
         static void SendHttpResponse(IChannelHandlerContext ctx, IFullHttpRequest req, IFullHttpResponse res)
@@ -128,6 +135,12 @@ namespace Sen.Proxy
             string location = value.ToString() + WebsocketPath;
 
             return "ws://" + location;
+        }
+
+        public override void ChannelInactive(IChannelHandlerContext context)
+        {
+
+            base.ChannelInactive(context);
         }
     }
 }

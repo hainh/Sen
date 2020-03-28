@@ -20,7 +20,7 @@ namespace Sen.Server
                     {
                         var isDevelopment = context.HostingEnvironment.IsDevelopment();
                         siloBuilder
-                            .UseLocalhostClustering(serviceId: "HelloWorldApp", clusterId: "dev")
+                            .UseLocalhostClustering(serviceId: "SenProxyApp", clusterId: "dev")
                             .Configure<ConnectionOptions>(options =>
                             {
                                 options.ProtocolVersion = Orleans.Runtime.Messaging.NetworkProtocolVersion.Version2;

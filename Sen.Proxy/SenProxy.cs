@@ -24,26 +24,28 @@ namespace Sen.Proxy
 {
     public class SenProxy
     {
+        public static IClusterClient OrleansClient { get; private set; }
+
         public static async Task Main()
         {
-            await Task.WhenAny(RunServer(), RunOrleans());
+            await Task.WhenAll(RunNettyServer(), RunOrleansProxyClient());
         }
 
-        static async Task<int> RunOrleans()
+        static async Task<int> RunOrleansProxyClient()
         {
             try
             {
                 // Configure a client and connect to the service.
-                var client = new ClientBuilder()
-                    .UseLocalhostClustering(serviceId: "HelloWorldApp", clusterId: "dev")
+                OrleansClient = new ClientBuilder()
+                    .UseLocalhostClustering(serviceId: "SenProxyApp", clusterId: "dev")
                     .ConfigureLogging(logging => logging.AddConsole())
                     .Build();
 
-                await client.Connect(CreateRetryFilter());
+                await OrleansClient.Connect(RetryFilter);
                 Console.WriteLine("Client successfully connect to silo host");
 
                 // Use the connected client to call a grain, writing the result to the terminal.
-                var friend = client.GetGrain<IProxyConnection>(0);
+                var friend = OrleansClient.GetGrain<IProxyConnection>(Guid.NewGuid());
                 var response = await friend.Test("Good morning, my friend!");
                 Console.WriteLine("\n\n{0}\n\n", response);
 
@@ -58,26 +60,16 @@ namespace Sen.Proxy
             }
         }
 
-        private static Func<Exception, Task<bool>> CreateRetryFilter(int maxAttempts = 5)
+        static int attempt = 0;
+        static async Task<bool> RetryFilter(Exception exception)
         {
-            var attempt = 0;
-            return RetryFilter;
-
-            async Task<bool> RetryFilter(Exception exception)
-            {
-                attempt++;
-                Console.WriteLine($"Cluster client attempt {attempt} of {maxAttempts} failed to connect to cluster.  Exception: {exception}");
-                if (attempt > maxAttempts)
-                {
-                    return false;
-                }
-
-                await Task.Delay(TimeSpan.FromSeconds(4));
-                return true;
-            }
+            attempt++;
+            Console.WriteLine($"Cluster client attempt {attempt} failed to connect to cluster.  Exception: {exception}");
+            await Task.Delay(TimeSpan.FromSeconds(10));
+            return true;
         }
 
-        static async Task RunServer()
+        static async Task RunNettyServer()
         {
             ResourceLeakDetector.Level = ResourceLeakDetector.DetectionLevel.Paranoid;
             Console.WriteLine($"Server garbage collection : {(GCSettings.IsServerGC ? "Enabled" : "Disabled")}");

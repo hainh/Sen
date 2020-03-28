@@ -5,6 +5,8 @@
     <StartupObject>Sen.Proxy.SenProxy</StartupObject>
     <ApplicationIcon />
     <OutputType>Exe</OutputType>
+    <ServerGarbageCollection>true</ServerGarbageCollection>
+    <ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>
   </PropertyGroup>
 
   <ItemGroup>

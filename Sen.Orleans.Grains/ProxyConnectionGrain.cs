@@ -14,7 +14,7 @@ namespace Sen.OrleansGrains
 
         public Task<string> Test(string message)
         {
-            Console.WriteLine($"SayHello message received: greeting = '{message}'");
+            Console.WriteLine($"{GetType().FullName} message received: greeting = '{message}'");
 
             return Task.FromResult($"You said: '{message}', I say: Fuckoff!");
         }
