@@ -19,6 +19,7 @@ using System.Diagnostics;
 using Orleans;
 using Sen.OrleansInterfaces;
 using Microsoft.Extensions.Logging;
+using System.Runtime.InteropServices;
 
 namespace Sen.Proxy
 {
@@ -28,8 +29,7 @@ namespace Sen.Proxy
 
         public static async Task Main()
         {
-            await RunNettyServer();
-            //await Task.WhenAll(RunNettyServer(), RunOrleansProxyClient());
+            await Task.WhenAll(RunNettyServer(), RunOrleansProxyClient());
         }
 
         static async Task<int> RunOrleansProxyClient()
@@ -44,8 +44,8 @@ namespace Sen.Proxy
 
                 await OrleansClient.Connect(RetryFilter);
                 Console.WriteLine("Proxy successfully connect to silo host");
-
                 Console.ReadKey();
+                Console.WriteLine("Exitting Orleans");
                 return 0;
             }
             catch (Exception e)
@@ -67,7 +67,8 @@ namespace Sen.Proxy
 
         static async Task RunNettyServer()
         {
-            ResourceLeakDetector.Level = ResourceLeakDetector.DetectionLevel.Paranoid;
+            ResourceLeakDetector.Level = ResourceLeakDetector.DetectionLevel.Disabled;
+            Console.WriteLine($"Resource Leak Detector Level : {ResourceLeakDetector.Level}");
             Console.WriteLine($"Server garbage collection : {(GCSettings.IsServerGC ? "Enabled" : "Disabled")}");
             Console.WriteLine($"Current latency mode for garbage collection: {GCSettings.LatencyMode}");
 
@@ -77,11 +78,9 @@ namespace Sen.Proxy
             try
             {
                 var bootstrap = new ServerBootstrap();
-                bootstrap.Group(bossGroup, workGroup);
-
-                bootstrap.Channel<TcpServerChannel>();
-
                 bootstrap
+                        .Group(bossGroup, workGroup)
+                        .Channel<TcpServerChannel>()
                         .Option(ChannelOption.SoBacklog, 8192)
                         .ChildHandler(new ActionChannelInitializer<IChannel>(channel =>
                         {
@@ -91,6 +90,12 @@ namespace Sen.Proxy
                             pipeline.AddLast(new WebSocketServerHandler());
                             
                         }));
+                if (IsUnixLike())
+                {
+                    bootstrap
+                            .Option(ChannelOption.SoReuseport, true)
+                            .ChildOption(ChannelOption.SoReuseaddr, true);
+                }
 
                 IChannel bootstrapChannel = await bootstrap.BindAsync(IPAddress.Loopback, 9090);
                 IChannel nextChannel = await bootstrap.BindAsync(IPAddress.Loopback, 9091);
@@ -98,12 +103,18 @@ namespace Sen.Proxy
                 Console.ReadLine();
                 await bootstrapChannel.CloseAsync();
                 await nextChannel.CloseAsync();
+                Console.WriteLine("Exited DotNetty");
             }
             finally
             {
                 await workGroup.ShutdownGracefullyAsync();
                 await bossGroup.ShutdownGracefullyAsync();
             }
+        }
+
+        static bool IsUnixLike()
+        {
+            return RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
         }
     }
 }

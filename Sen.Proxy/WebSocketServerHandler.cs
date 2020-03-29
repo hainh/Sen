@@ -23,7 +23,7 @@ namespace Sen.Proxy
 
         WebSocketServerHandshaker handshaker;
 
-        //IProxyConnection proxyConnection;
+        IProxyConnection proxyConnection;
 
         protected override void ChannelRead0(IChannelHandlerContext ctx, object msg)
         {
@@ -65,9 +65,9 @@ namespace Sen.Proxy
             }
             else
             {
-                // Create the grain to communicate with the server (silo)
-                //proxyConnection = SenProxy.OrleansClient.GetGrain<IProxyConnection>(Guid.NewGuid());
-                //proxyConnection.InitConnection(ctx.Channel.LocalAddress, ctx.Channel.RemoteAddress);
+                //Create the grain to communicate with the server(silo)
+                proxyConnection = SenProxy.OrleansClient.GetGrain<IProxyConnection>(Guid.NewGuid());
+                proxyConnection.InitConnection(ctx.Channel.LocalAddress, ctx.Channel.RemoteAddress);
 
                 this.handshaker.HandshakeAsync(ctx.Channel, req);
             }
@@ -90,24 +90,37 @@ namespace Sen.Proxy
 
             if (frame is BinaryWebSocketFrame || frame is ContinuationWebSocketFrame)
             {
-                //var buffer = (IByteBuffer)Unpooled.Buffer(frame.Content.Capacity, frame.Content.Capacity).Retain();
-                //frame.Content.ReadBytes(buffer);
-                //proxyConnection.Read(buffer.Array).ContinueWith(task =>
-                //{
-                //    buffer.Release();
-                //    if (task.Result != null)
-                //    {
-                //        var result = Unpooled.WrappedBuffer(task.Result);
-                //        var f = new BinaryWebSocketFrame(result);
-                //        ctx.WriteAndFlushAsync(f);
-                //    }
-                //});
-                ctx.WriteAsync(frame.Retain());
+                ForwardDataToServer(ctx, frame);
+                //EchoData(ctx, frame);
                 return;
             }
 
             // Not accept other frames, like TextWebSocketFrame
             ctx.CloseAsync();
+        }
+
+        void ForwardDataToServer(IChannelHandlerContext ctx, WebSocketFrame frame)
+        {
+            var buffer = Unpooled.Buffer(frame.Content.Capacity, frame.Content.Capacity);
+            frame.Content.ReadBytes(buffer);
+            proxyConnection.Read(buffer.Array).ContinueWith(task =>
+            {
+                buffer.Release();
+                if (task.Result != null)
+                {
+                    var result = Unpooled.WrappedBuffer(task.Result);
+                    var f = new BinaryWebSocketFrame(result);
+                    ctx.WriteAndFlushAsync(f);
+                }
+            });
+        }
+
+        void EchoData(IChannelHandlerContext ctx, WebSocketFrame frame)
+        {
+            //ctx.WriteAsync(frame.Retain());
+
+            frame.Retain();
+            Task.Delay(2).ContinueWith(task => ctx.WriteAndFlushAsync(frame));
         }
 
         static void SendHttpResponse(IChannelHandlerContext ctx, IFullHttpRequest req, IFullHttpResponse res)
@@ -147,7 +160,7 @@ namespace Sen.Proxy
 
         public override void ChannelInactive(IChannelHandlerContext context)
         {
-            //proxyConnection.Disconnect();
+            proxyConnection.Disconnect();
             base.ChannelInactive(context);
         }
     }

@@ -25,7 +25,6 @@ namespace Sen.OrleansGrains
 
         public Task<byte[]> Read(byte[] data)
         {
-            Console.WriteLine($"Received {data.Length} bytes of data");
             return Task.FromResult(data);
         }
 
