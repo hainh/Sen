@@ -90,8 +90,8 @@ namespace Sen.Proxy
 
             if (frame is BinaryWebSocketFrame || frame is ContinuationWebSocketFrame)
             {
-                ForwardDataToServer(ctx, frame);
-                //EchoData(ctx, frame);
+                //ForwardDataToServer(ctx, frame);
+                EchoData(ctx, frame);
                 return;
             }
 
@@ -117,10 +117,10 @@ namespace Sen.Proxy
 
         void EchoData(IChannelHandlerContext ctx, WebSocketFrame frame)
         {
-            //ctx.WriteAsync(frame.Retain());
+            ctx.WriteAndFlushAsync(frame.Retain());
 
-            frame.Retain();
-            Task.Delay(2).ContinueWith(task => ctx.WriteAndFlushAsync(frame));
+            //frame.Retain();
+            //Task.Delay(2).ContinueWith(task => ctx.WriteAndFlushAsync(frame));
         }
 
         static void SendHttpResponse(IChannelHandlerContext ctx, IFullHttpRequest req, IFullHttpResponse res)

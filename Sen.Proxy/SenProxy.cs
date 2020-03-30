@@ -1,25 +1,19 @@
 ﻿using DotNetty.Codecs.Http;
-using DotNetty.Codecs.Http.WebSockets;
 using DotNetty.Common;
 using DotNetty.Common.Internal.Logging;
 using DotNetty.Transport.Bootstrapping;
 using DotNetty.Transport.Channels;
 using DotNetty.Transport.Libuv;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Console;
+using Microsoft.Extensions.Options;
+using NLog.Extensions.Logging;
+using Orleans;
 using System;
 using System.Net;
 using System.Runtime;
-using System.Threading.Tasks;
-
-using static DotNetty.Codecs.Http.HttpVersion;
-using static DotNetty.Codecs.Http.HttpResponseStatus;
-using System.Text;
-using DotNetty.Buffers;
-using DotNetty.Common.Utilities;
-using System.Diagnostics;
-using Orleans;
-using Sen.OrleansInterfaces;
-using Microsoft.Extensions.Logging;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 
 namespace Sen.Proxy
 {
@@ -29,7 +23,13 @@ namespace Sen.Proxy
 
         public static async Task Main()
         {
+            AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
             await Task.WhenAll(RunNettyServer(), RunOrleansProxyClient());
+        }
+
+        private static void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
+        {
+
         }
 
         static async Task<int> RunOrleansProxyClient()
@@ -39,7 +39,7 @@ namespace Sen.Proxy
                 // Configure a client and connect to the service.
                 OrleansClient = new ClientBuilder()
                     .UseLocalhostClustering(serviceId: "SenServer", clusterId: "dev")
-                    .ConfigureLogging(logging => logging.AddConsole())
+                    .ConfigureLogging(logging => logging.AddNLog())
                     .Build();
 
                 await OrleansClient.Connect(RetryFilter);
@@ -67,10 +67,13 @@ namespace Sen.Proxy
 
         static async Task RunNettyServer()
         {
-            ResourceLeakDetector.Level = ResourceLeakDetector.DetectionLevel.Disabled;
+            ILoggerFactory factory = new LoggerFactory();
+            InternalLoggerFactory.DefaultFactory = new NLogLoggerFactory();
+            ResourceLeakDetector.Level = ResourceLeakDetector.DetectionLevel.Paranoid;
             Console.WriteLine($"Resource Leak Detector Level : {ResourceLeakDetector.Level}");
             Console.WriteLine($"Server garbage collection : {(GCSettings.IsServerGC ? "Enabled" : "Disabled")}");
             Console.WriteLine($"Current latency mode for garbage collection: {GCSettings.LatencyMode}");
+
 
             IEventLoopGroup bossGroup = new DispatcherEventLoopGroup();
             IEventLoopGroup workGroup = new WorkerEventLoopGroup((DispatcherEventLoopGroup)bossGroup);

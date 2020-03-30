@@ -5,6 +5,7 @@ using Orleans.Hosting;
 using System;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
+using NLog.Extensions.Logging;
 
 namespace Sen.Server
 {
@@ -26,7 +27,7 @@ namespace Sen.Server
                                 options.ProtocolVersion = Orleans.Runtime.Messaging.NetworkProtocolVersion.Version2;
                             });
                     })
-                    .ConfigureLogging(logging => logging.AddConsole())
+                    .ConfigureLogging(logging => logging.AddNLog())
                     .Build();
                 await host.RunAsync();
 

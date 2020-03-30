@@ -10,6 +10,9 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="3.0.0" />
+    <PackageReference Include="NLog" Version="4.7.0" />
+    <PackageReference Include="NLog.Extensions.Logging" Version="1.6.2" />
+    <PackageReference Include="NLog.Schema" Version="4.7.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -22,6 +25,12 @@
     <ProjectReference Include="..\..\DotNetty\src\DotNetty.Transport\DotNetty.Transport.csproj" />
     <ProjectReference Include="..\..\Orleans\src\Orleans.Core\Orleans.Core.csproj" />
     <ProjectReference Include="..\Sen.Orleans.Interfaces\Sen.OrleansInterfaces.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="nlog.config">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>
