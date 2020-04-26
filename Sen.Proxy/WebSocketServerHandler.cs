@@ -1,22 +1,22 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿using System;
+using System.Diagnostics;
+using System.Text;
+using System.Threading.Tasks;
+using DotNetty.Buffers;
+using DotNetty.Codecs.Http;
+using DotNetty.Codecs.Http.WebSockets;
+using DotNetty.Common.Utilities;
+using DotNetty.Transport.Channels;
+
+using static DotNetty.Codecs.Http.HttpVersion;
+using static DotNetty.Codecs.Http.HttpResponseStatus;
+using Sen.OrleansInterfaces;
+using System.Net;
+using Orleans.Concurrency;
+using Sen.Utilities.Concurrency;
 
 namespace Sen.Proxy
 {
-    using System;
-    using System.Diagnostics;
-    using System.Text;
-    using System.Threading.Tasks;
-    using DotNetty.Buffers;
-    using DotNetty.Codecs.Http;
-    using DotNetty.Codecs.Http.WebSockets;
-    using DotNetty.Common.Utilities;
-    using DotNetty.Transport.Channels;
-
-    using static DotNetty.Codecs.Http.HttpVersion;
-    using static DotNetty.Codecs.Http.HttpResponseStatus;
-    using Sen.OrleansInterfaces;
-
     public class WebSocketServerHandler : SimpleChannelInboundHandler<object>
     {
         const string WebsocketPath = "/websocket";
@@ -65,9 +65,15 @@ namespace Sen.Proxy
             }
             else
             {
+
+                IPEndPoint remoteIpEndPoint = ctx.Channel.RemoteAddress as IPEndPoint;
+                if (SenProxy.ProxyConfig.UseExternalProxy != UseExternalProxy.None)
+                {
+                    remoteIpEndPoint = GetRealRemoteEndPoint(req, remoteIpEndPoint);
+                }
                 //Create the grain to communicate with the server(silo)
                 proxyConnection = SenProxy.OrleansClient.GetGrain<IProxyConnection>(Guid.NewGuid());
-                proxyConnection.InitConnection(ctx.Channel.LocalAddress, ctx.Channel.RemoteAddress);
+                proxyConnection.InitConnection(ctx.Channel.LocalAddress, remoteIpEndPoint);
 
                 this.handshaker.HandshakeAsync(ctx.Channel, req);
             }
@@ -88,10 +94,14 @@ namespace Sen.Proxy
                 return;
             }
 
-            if (frame is BinaryWebSocketFrame || frame is ContinuationWebSocketFrame)
+            if (frame is BinaryWebSocketFrame)
             {
-                //ForwardDataToServer(ctx, frame);
-                EchoData(ctx, frame);
+                ForwardDataToServer(ctx, frame);
+                return;
+            }
+            if (frame is ContinuationWebSocketFrame)
+            {
+                Console.WriteLine($"Fragment frame {frame.IsFinalFragment} {frame.Content.ReadableBytes}");
                 return;
             }
 
@@ -101,26 +111,22 @@ namespace Sen.Proxy
 
         void ForwardDataToServer(IChannelHandlerContext ctx, WebSocketFrame frame)
         {
-            var buffer = Unpooled.Buffer(frame.Content.Capacity, frame.Content.Capacity);
+            var buffer = new byte[frame.Content.ReadableBytes];
             frame.Content.ReadBytes(buffer);
-            proxyConnection.Read(buffer.Array).ContinueWith(task =>
+            proxyConnection.Read(buffer.AsImmutable()).ContinueWith((Task<Immutable<byte[]>> task, object state) =>
             {
-                buffer.Release();
-                if (task.Result != null)
+                if (task.Result.Value != null && state is IChannelHandlerContext ctx)
                 {
-                    var result = Unpooled.WrappedBuffer(task.Result);
+                    var result = Unpooled.WrappedBuffer(task.Result.Value);
                     var f = new BinaryWebSocketFrame(result);
                     ctx.WriteAndFlushAsync(f);
                 }
-            });
+            }, ctx, TaskContinuationOptions.ExecuteSynchronously);
         }
 
         void EchoData(IChannelHandlerContext ctx, WebSocketFrame frame)
         {
-            ctx.WriteAndFlushAsync(frame.Retain());
-
-            //frame.Retain();
-            //Task.Delay(2).ContinueWith(task => ctx.WriteAndFlushAsync(frame));
+            ctx.WriteAsync(frame.Retain());
         }
 
         static void SendHttpResponse(IChannelHandlerContext ctx, IFullHttpRequest req, IFullHttpResponse res)
@@ -162,6 +168,47 @@ namespace Sen.Proxy
         {
             proxyConnection.Disconnect();
             base.ChannelInactive(context);
+        }
+
+        static IPEndPoint GetRealRemoteEndPoint(IFullHttpRequest req, IPEndPoint defaultEndPoint)
+        {
+            switch (SenProxy.ProxyConfig.UseExternalProxy)
+            {
+                //case UseExternalProxy.None:
+                //    return defaultEndPoint;
+                case UseExternalProxy.CloudFlare:
+                    if (GetIPAddressInHeaders(req, "cf-connecting-ip", out IPAddress ip)
+                        || GetIPAddressInHeaders(req, "true-client-ip", out ip))
+                    {
+                        return new IPEndPoint(ip, defaultEndPoint.Port);
+                    }
+                    break;
+                default:
+                    break;
+            }
+            //if (GetIPAddressInHeaders(req, "cf-connecting-ip", out IPAddress ip)
+            //    || GetIPAddressInHeaders(req, "x-client-ip", out ip)
+            //    || GetIPAddressInHeaders(req, "true-client-ip", out ip)
+            //    || GetIPAddressInHeaders(req, "x-real-ip", out ip)
+            //    || GetIPAddressInHeaders(req, "x-cluster-client-ip", out ip)
+            //    || GetIPAddressInHeaders(req, "x-forwarded", out ip)
+            //    || GetIPAddressInHeaders(req, "forwarded-for", out ip))
+            //{
+            //    return new IPEndPoint(ip, defaultEndPoint.Port);
+            //}
+
+            return defaultEndPoint;
+        }
+
+        static bool GetIPAddressInHeaders(IFullHttpRequest req, string name, out IPAddress ip)
+        {
+            var value = req.Headers.Get(new AsciiString(name), null);
+            if (value != null && IPAddress.TryParse(value.ToString(), out ip))
+            {
+                return true;
+            }
+            ip = null;
+            return false;
         }
     }
 }

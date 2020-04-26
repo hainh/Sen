@@ -6,6 +6,7 @@ using System;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 using NLog.Extensions.Logging;
+using System.Runtime;
 
 namespace Sen.Server
 {
@@ -13,6 +14,7 @@ namespace Sen.Server
     {
         public static async Task<int> Main(string[] args)
         {
+            Console.Title = "Sen Server";
             try
             {
                 var host = new HostBuilder()
@@ -29,6 +31,10 @@ namespace Sen.Server
                     })
                     .ConfigureLogging(logging => logging.AddNLog())
                     .Build();
+
+                Console.WriteLine($"Server garbage collection : {(GCSettings.IsServerGC ? "Enabled" : "Disabled")}");
+                Console.WriteLine($"Current latency mode for garbage collection: {GCSettings.LatencyMode}");
+
                 await host.RunAsync();
 
                 return 0;

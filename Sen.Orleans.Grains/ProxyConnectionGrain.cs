@@ -1,4 +1,5 @@
 ﻿using Orleans;
+using Orleans.Concurrency;
 using Sen.OrleansInterfaces;
 using System;
 using System.Net;
@@ -23,6 +24,11 @@ namespace Sen.OrleansGrains
             return Task.CompletedTask;
         }
 
+        public Task<Immutable<byte[]>> Read(Immutable<byte[]> data)
+        {
+            return Task.FromResult(data);
+        }
+
         public Task<byte[]> Read(byte[] data)
         {
             return Task.FromResult(data);
@@ -30,6 +36,7 @@ namespace Sen.OrleansGrains
 
         public Task Disconnect()
         {
+            Console.WriteLine("Disconnect " + RemoteAddress.ToString());
             return Task.CompletedTask;
         }
     }
