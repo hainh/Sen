@@ -2,9 +2,9 @@
 
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
-    <StartupObject>Sen.Proxy.SenProxy</StartupObject>
+    <StartupObject></StartupObject>
     <ApplicationIcon />
-    <OutputType>Exe</OutputType>
+    <OutputType>Library</OutputType>
     <ServerGarbageCollection>true</ServerGarbageCollection>
   </PropertyGroup>
 
@@ -23,7 +23,7 @@
     <ProjectReference Include="..\..\DotNetty\src\DotNetty.Transport.Libuv\DotNetty.Transport.Libuv.csproj" />
     <ProjectReference Include="..\..\DotNetty\src\DotNetty.Transport\DotNetty.Transport.csproj" />
     <ProjectReference Include="..\..\Orleans\src\Orleans.Core\Orleans.Core.csproj" />
-    <ProjectReference Include="..\Sen.Orleans.Interfaces\Sen.OrleansInterfaces.csproj" />
+    <ProjectReference Include="..\Sen.Interfaces\Sen.Interfaces.csproj" />
   </ItemGroup>
 
   <ItemGroup>

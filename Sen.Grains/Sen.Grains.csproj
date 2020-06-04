@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
+    <RootNamespace>Sen</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
@@ -13,7 +14,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Orleans\src\Orleans.Core.Abstractions\Orleans.Core.Abstractions.csproj" />
-    <ProjectReference Include="..\Sen.Orleans.Interfaces\Sen.OrleansInterfaces.csproj" />
+    <ProjectReference Include="..\Sen.Interfaces\Sen.Interfaces.csproj" />
+    <ProjectReference Include="..\Sen.Utilities\Sen.Utilities.csproj" />
   </ItemGroup>
 
 </Project>

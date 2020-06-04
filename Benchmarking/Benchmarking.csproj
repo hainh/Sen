@@ -12,8 +12,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\DotNetty\src\DotNetty.Buffers\DotNetty.Buffers.csproj" />
     <ProjectReference Include="..\..\DotNetty\src\DotNetty.Common\DotNetty.Common.csproj" />
-    <ProjectReference Include="..\..\Orleans\src\Orleans.Core.Abstractions\Orleans.Core.Abstractions.csproj" />
-    <ProjectReference Include="..\..\Orleans\src\Orleans.Core\Orleans.Core.csproj" />
+    <ProjectReference Include="..\Sen.Utilities\Sen.Utilities.csproj" />
   </ItemGroup>
 
 </Project>

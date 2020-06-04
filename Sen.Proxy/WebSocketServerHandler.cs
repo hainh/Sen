@@ -10,30 +10,36 @@ using DotNetty.Transport.Channels;
 
 using static DotNetty.Codecs.Http.HttpVersion;
 using static DotNetty.Codecs.Http.HttpResponseStatus;
-using Sen.OrleansInterfaces;
+using Sen.Interfaces;
 using System.Net;
 using Orleans.Concurrency;
-using Sen.Utilities.Concurrency;
+using Sen.Game;
 
 namespace Sen.Proxy
 {
     public class WebSocketServerHandler : SimpleChannelInboundHandler<object>
     {
+        readonly GrainFactory _grainFactory;
+        readonly UseExternalProxy _useExternalProxy;
         const string WebsocketPath = "/websocket";
+        WebSocketServerHandshaker _handshaker;
+        IPlayer _proxyConnection;
 
-        WebSocketServerHandshaker handshaker;
-
-        IProxyConnection proxyConnection;
+        public WebSocketServerHandler(GrainFactory grainFactory, UseExternalProxy useExternalProxy)
+        {
+            _grainFactory = grainFactory;
+            _useExternalProxy = useExternalProxy;
+        }
 
         protected override void ChannelRead0(IChannelHandlerContext ctx, object msg)
         {
             if (msg is IFullHttpRequest request)
             {
-                this.HandleHttpRequest(ctx, request);
+                HandleHttpRequest(ctx, request);
             }
             else if (msg is WebSocketFrame frame)
             {
-                this.HandleWebSocketFrame(ctx, frame);
+                HandleWebSocketFrame(ctx, frame);
             }
         }
 
@@ -47,9 +53,11 @@ namespace Sen.Proxy
                 SendHttpResponse(ctx, req, new DefaultFullHttpResponse(Http11, BadRequest));
                 return;
             }
+            
+            string[] uriComponent = req.Uri.Split('/', StringSplitOptions.RemoveEmptyEntries);
 
             // Allow only GET methods.
-            if (!Equals(req.Method, HttpMethod.Get))
+            if (!Equals(req.Method, HttpMethod.Get) || uriComponent[0] != "websocket")
             {
                 SendHttpResponse(ctx, req, new DefaultFullHttpResponse(Http11, Forbidden));
                 return;
@@ -58,24 +66,23 @@ namespace Sen.Proxy
             // Handshake
             var wsFactory = new WebSocketServerHandshakerFactory(
                 GetWebSocketLocation(req), null, true, 5 * 1024 * 1024);
-            this.handshaker = wsFactory.NewHandshaker(req);
-            if (this.handshaker == null)
+            _handshaker = wsFactory.NewHandshaker(req);
+            if (_handshaker == null)
             {
                 WebSocketServerHandshakerFactory.SendUnsupportedVersionResponse(ctx.Channel);
             }
             else
             {
-
                 IPEndPoint remoteIpEndPoint = ctx.Channel.RemoteAddress as IPEndPoint;
-                if (SenProxy.ProxyConfig.UseExternalProxy != UseExternalProxy.None)
+                if (_useExternalProxy != UseExternalProxy.None)
                 {
                     remoteIpEndPoint = GetRealRemoteEndPoint(req, remoteIpEndPoint);
                 }
                 //Create the grain to communicate with the server(silo)
-                proxyConnection = SenProxy.OrleansClient.GetGrain<IProxyConnection>(Guid.NewGuid());
-                proxyConnection.InitConnection(ctx.Channel.LocalAddress, remoteIpEndPoint);
+                _proxyConnection = _grainFactory(uriComponent[1]);
+                _proxyConnection.InitConnection(ctx.Channel.LocalAddress, remoteIpEndPoint, uriComponent[2]);
 
-                this.handshaker.HandshakeAsync(ctx.Channel, req);
+                _handshaker.HandshakeAsync(ctx.Channel, req);
             }
         }
 
@@ -84,7 +91,7 @@ namespace Sen.Proxy
             // Check for closing frame
             if (frame is CloseWebSocketFrame)
             {
-                this.handshaker.CloseAsync(ctx.Channel, (CloseWebSocketFrame)frame.Retain());
+                _handshaker.CloseAsync(ctx.Channel, (CloseWebSocketFrame)frame.Retain());
                 return;
             }
 
@@ -113,7 +120,7 @@ namespace Sen.Proxy
         {
             var buffer = new byte[frame.Content.ReadableBytes];
             frame.Content.ReadBytes(buffer);
-            proxyConnection.Read(buffer.AsImmutable()).ContinueWith((Task<Immutable<byte[]>> task, object state) =>
+            _proxyConnection.Read(buffer.AsImmutable()).ContinueWith((Task<Immutable<byte[]>> task, object state) =>
             {
                 if (task.Result.Value != null && state is IChannelHandlerContext ctx)
                 {
@@ -122,11 +129,6 @@ namespace Sen.Proxy
                     ctx.WriteAndFlushAsync(f);
                 }
             }, ctx, TaskContinuationOptions.ExecuteSynchronously);
-        }
-
-        void EchoData(IChannelHandlerContext ctx, WebSocketFrame frame)
-        {
-            ctx.WriteAsync(frame.Retain());
         }
 
         static void SendHttpResponse(IChannelHandlerContext ctx, IFullHttpRequest req, IFullHttpResponse res)
@@ -166,13 +168,13 @@ namespace Sen.Proxy
 
         public override void ChannelInactive(IChannelHandlerContext context)
         {
-            proxyConnection.Disconnect();
+            _proxyConnection.Disconnect();
             base.ChannelInactive(context);
         }
 
-        static IPEndPoint GetRealRemoteEndPoint(IFullHttpRequest req, IPEndPoint defaultEndPoint)
+        IPEndPoint GetRealRemoteEndPoint(IFullHttpRequest req, IPEndPoint defaultEndPoint)
         {
-            switch (SenProxy.ProxyConfig.UseExternalProxy)
+            switch (_useExternalProxy)
             {
                 //case UseExternalProxy.None:
                 //    return defaultEndPoint;

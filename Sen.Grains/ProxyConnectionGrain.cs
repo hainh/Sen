@@ -1,43 +1,40 @@
 ﻿using Orleans;
 using Orleans.Concurrency;
-using Sen.OrleansInterfaces;
+using Sen.DataModel;
+using Sen.Interfaces;
 using System;
 using System.Net;
 using System.Threading.Tasks;
 
-namespace Sen.OrleansGrains
+namespace Sen.Grains
 {
-    public class ProxyConnectionGrain : Grain, IProxyConnection
+    public class ProxyConnectionGrain<TUnionData, TGrainState> : Grain<TGrainState>, IProxyConnection
+        where TUnionData : IUnionData
     {
         public IPEndPoint LocalAddress { get; private set; }
 
         public IPEndPoint RemoteAddress { get; private set; }
 
-        public Task InitConnection(EndPoint local, EndPoint remote)
+        public virtual ValueTask InitConnection(EndPoint local, EndPoint remote)
         {
             Console.WriteLine($"Init connection {local}, {remote}");
             LocalAddress = local as IPEndPoint;
             RemoteAddress = remote as IPEndPoint;
 
-            // TODO: init player...
-
-            return Task.CompletedTask;
+            return default;
         }
 
         public Task<Immutable<byte[]>> Read(Immutable<byte[]> data)
         {
-            return Task.FromResult(data);
+            WiredData<TUnionData> message = MessagePack.MessagePackSerializer.Deserialize<WiredData<TUnionData>>(data.Value);
+
+            return Task.FromResult(default(Immutable<byte[]>));
         }
 
-        public Task<byte[]> Read(byte[] data)
-        {
-            return Task.FromResult(data);
-        }
-
-        public Task Disconnect()
+        public ValueTask Disconnect()
         {
             Console.WriteLine("Disconnect " + RemoteAddress.ToString());
-            return Task.CompletedTask;
+            return default;
         }
     }
 }

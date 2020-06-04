@@ -6,7 +6,7 @@ namespace Trial
     {
         static void Main(string[] args)
         {
-            TryJson.Run();
+            MessagePack.Attemp();
         }
     }
 }

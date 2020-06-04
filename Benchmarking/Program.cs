@@ -8,7 +8,7 @@ namespace Benchmarking
         static void Main(string[] args)
         {
             Console.WriteLine("Start Benchmarking!");
-            var summary = BenchmarkRunner.Run<ArrayPoolBenchmark>();
+            var summary = BenchmarkRunner.Run<LessKeyReadOnlyDictionaryBenchmark>();
             Console.WriteLine(summary);
         }
     }

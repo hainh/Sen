@@ -16,8 +16,8 @@
   <ItemGroup>
     <ProjectReference Include="..\..\Orleans\src\Orleans.Runtime\Orleans.Runtime.csproj" />
     <ProjectReference Include="..\..\Orleans\src\OrleansProviders\OrleansProviders.csproj" />
-    <ProjectReference Include="..\Sen.Orleans.Grains\Sen.OrleansGrains.csproj" />
-    <ProjectReference Include="..\Sen.Orleans.Interfaces\Sen.OrleansInterfaces.csproj" />
+    <ProjectReference Include="..\Sen.Grains\Sen.Grains.csproj" />
+    <ProjectReference Include="..\Sen.Interfaces\Sen.Interfaces.csproj" />
   </ItemGroup>
 
   <ItemGroup>
