@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Document</title>
+</head>
+<body>
+	<script>
+		this.MessageTypes = {
+		  "types": [
+		    {
+		      "className": "MyServiceData",
+		      "unionCode": -1,
+		      "values": [
+		        {
+		          "valueName": "MyData",
+		          "keyCode": 1,
+		          "type": "TUnion",
+		          "isArray": false
+		        },
+		        {
+		          "valueName": "ServiceCode",
+		          "keyCode": 0,
+		          "type": "Int32",
+		          "isArray": false
+		        }
+		      ]
+		    },
+		    {
+		      "className": "MyData",
+		      "unionCode": -1,
+		      "values": [
+		        {
+		          "valueName": "A",
+		          "keyCode": 0,
+		          "type": "Int32",
+		          "isArray": false
+		        },
+		        {
+		          "valueName": "B",
+		          "keyCode": 1,
+		          "type": "String",
+		          "isArray": false
+		        },
+		        {
+		          "valueName": "C",
+		          "keyCode": 2,
+		          "type": "Int16",
+		          "isArray": false
+		        }
+		      ]
+		    },
+		    {
+		      "className": "MyData2",
+		      "unionCode": 10000,
+		      "values": [
+		        {
+		          "valueName": "A",
+		          "keyCode": 0,
+		          "type": "Boolean",
+		          "isArray": false
+		        },
+		        {
+		          "valueName": "B",
+		          "keyCode": 1,
+		          "type": "Byte",
+		          "isArray": false
+		        },
+		        {
+		          "valueName": "C",
+		          "keyCode": 2,
+		          "type": "SByte",
+		          "isArray": false
+		        },
+		        {
+		          "valueName": "D",
+		          "keyCode": 3,
+		          "type": "Char",
+		          "isArray": false
+		        },
+		        {
+		          "valueName": "E",
+		          "keyCode": 4,
+		          "type": "Decimal",
+		          "isArray": false
+		        },
+		        {
+		          "valueName": "F",
+		          "keyCode": 5,
+		          "type": "Double",
+		          "isArray": false
+		        },
+		        {
+		          "valueName": "G",
+		          "keyCode": 6,
+		          "type": "Single",
+		          "isArray": false
+		        },
+		        {
+		          "valueName": "H",
+		          "keyCode": 7,
+		          "type": "Int32",
+		          "isArray": false
+		        },
+		        {
+		          "valueName": "I",
+		          "keyCode": 8,
+		          "type": "UInt32",
+		          "isArray": false
+		        },
+		        {
+		          "valueName": "J",
+		          "keyCode": 9,
+		          "type": "Int64",
+		          "isArray": false
+		        },
+		        {
+		          "valueName": "K",
+		          "keyCode": 10,
+		          "type": "UInt64",
+		          "isArray": false
+		        },
+		        {
+		          "valueName": "L",
+		          "keyCode": 11,
+		          "type": "Int16",
+		          "isArray": false
+		        },
+		        {
+		          "valueName": "M",
+		          "keyCode": 12,
+		          "type": "UInt16",
+		          "isArray": false
+		        },
+		        {
+		          "valueName": "N",
+		          "keyCode": 13,
+		          "type": "String",
+		          "isArray": false
+		        },
+		        {
+		          "valueName": "O",
+		          "keyCode": 14,
+		          "type": "Int32",
+		          "isArray": false
+		        }
+		      ]
+		    }
+		  ]
+		};
+	</script>
+	<script>
+		(function processMessageTypes(MessageTypes) {
+			var {types} = MessageTypes,
+				typeDict = MessageTypes.__innerTypes__ = {},
+				type;
+			for (var i = types.length - 1; i >= 0; i--) {
+				type = types[i];
+				typeDict[type['className']] = type;
+			}
+		})(MessageTypes);
+		MessageTypes.createType = function() {
+			for (var className in this.__innerTypes__) {
+				eval(`var ctor = function ${className}(){if(!new.target)return new ${className}();}`);
+				var typeData = this.__innerTypes__[className];
+				this[className] = ctor;
+				for (var i = typeData['values'].length - 1; i >= 0; i--) {
+					var {valueName, keyCode, type, isArray} = typeData['values'][i];
+					Object.defineProperty(ctor.prototype, valueName, defineGetterAndSetter(valueName, type, isArray, /*Sen.Logger*/console));
+				}
+				ctor.prototype.toJSON = function() {
+					var props = Object.getOwnPropertyDescriptors(this.constructor.prototype);
+					var jsonObj = {};
+					for (var propName in props) {
+						if (typeof props[propName].get === 'function') {
+							jsonObj[propName] = this[propName];
+						}
+					}
+					return jsonObj;
+				}
+			}
+
+			function defineGetterAndSetter(valueName, type, isArray, logger) {
+				var minMax = {
+					'Byte': [0, 0xFF],
+					'SByte': [-0x7F, 0x7F],
+					'Char': [0, 0xFFFF],
+					'UInt16': [0, 0xFFFF],
+					'Int16': [-0x7FFF, 0x7FFF],
+					'UInt32': [0, 0xFFFFFFFF],
+					'Int32': [-0x7FFFFFFF, 0x7FFFFFFF],
+					'UInt64': [0, 0xFFFFFFFFFFFFFFFF],
+					'Int64': [-0x7FFFFFFFFFFFFFFF, 0x7FFFFFFFFFFFFFFF],
+					'Decimal': 1,
+					'Single' : 1,
+					'Double' : 1,
+				};
+				function buildElementValidator(valueName, type) {
+					var range = minMax[type];
+					if (range === 1) {
+						return `if(isNaN(v)) {${Sen.throwOnDataError ? 'throw ' : 'logger.error'}(\`\${type} value of \${this.constructor.name}.${valueName} = \${v} is not a number\`)}`
+					} else if (range.length === 2) {
+						return `if (isNaN(v) || v - Math.floor(v)) {
+								${Sen.throwOnDataError ? 'throw ' : 'logger.error'}(\`${type} value of \${this.constructor.name}.${valueName} = \${v} is not an integer\`);
+							}
+							else if (v < ${range[0]} || v > ${range[1]}) {
+								${Sen.throwOnDataError ? 'throw ' : 'logger.error'}(\`${type} value of \${this.constructor.name}.${valueName} = \${v} is out of range (${range[0]}, ${range[1]})\`);
+							}`;
+					}
+					return '';
+				}
+				function buildValidator(valueName, type, isArray) {
+					var elementValidator = buildElementValidator(valueName, type);
+					if (elementValidator) {
+						return isArray
+							? 'for (var i = arr.length - 1; i >= 0; i--) \n{ var v = val[i];\n' + elementValidator + '\n}'
+							: 'var v = val;\n' + elementValidator;
+					}
+					return '';
+				}
+				function buildSetter(valueName, type, isArray) {
+					switch (type) {
+						case 'Boolean': 
+							return `function setter (val) { __rawData = ${isArray ? 'val.map(v => !!v)' : '!!val'};};`;
+						case 'Byte':
+						case 'SByte':
+						case 'Char':
+						case 'UInt16':
+						case 'Int16':
+						case 'UInt32':
+						case 'Int32':
+						case 'UInt64':
+						case 'Int64':
+						case 'Decimal':
+						case 'Double':
+						case 'Single':
+							return `function setter (val){
+								${buildValidator(valueName, type, isArray)}
+								__rawData = ${isArray ? 'val.map(v => +v)' : '+val'};
+							};`;
+						case 'String':
+							return `function setter (val) {
+								__rawData = val && ${isArray ? 'val.map(v => v && v.toString())' : 'val.toString();'};
+							};`;
+						default:
+							if (MessageTypes.__innerTypes__[type]) {
+								return `function setter(val){
+									if (!(val instanceof MessageTypes['${type}'])) {
+										${Sen.throwOnDataError ? 'throw ' : 'logger.error'}(\`Value of \${this.constructor.name}.${valueName} = \${v} is not instanceof ${type}\`);
+									}
+									__rawData = val;
+								};`
+							} else {
+								return `function setter(val) {__rawData = val;};`
+							}
+					}
+				}
+				var __rawData = null;
+				var functionSetterScript = buildSetter(valueName, type, isArray);
+				eval(functionSetterScript);
+				var functionGetterScript = `function getter() {return __rawData};`;
+				eval(functionGetterScript);
+				return {
+					get: getter,
+					set: setter
+				}
+			}
+		}
+	</script>
+</body>
+</html>

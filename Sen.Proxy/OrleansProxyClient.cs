@@ -10,11 +10,13 @@ using System.Threading.Tasks;
 
 namespace Sen.Proxy
 {
-    public class OrleansProxyClient<TPlayer> where TPlayer : IPlayer, IGrainWithStringKey
+    public class OrleansProxyClient<TPlayerGrain> : IPlayerFactory where TPlayerGrain : IPlayer, IGrainWithStringKey
     {
         public IClusterClient OrleansClusterClient { get; private set; }
 
-        protected virtual IPlayer GetPlayer(string playerId) => OrleansClusterClient.GetGrain<TPlayer>(playerId);
+        public IPlayer CreatePlayer(string playerId) => OrleansClusterClient.GetGrain<TPlayerGrain>(playerId);
+
+        protected virtual IPlayer GetPlayer(string playerId) => OrleansClusterClient.GetGrain<TPlayerGrain>(playerId);
 
         public async Task<int> RunOrleansProxyClient(ISenProxy senProxy)
         {
@@ -26,7 +28,7 @@ namespace Sen.Proxy
                     .ConfigureLogging(logging => logging.AddNLog())
                     .Build();
 
-                senProxy.SetGrainFactory(GetPlayer);
+                senProxy.SetGrainFactory(this);
                 await OrleansClusterClient.Connect(RetryFilter);
                 Console.WriteLine("Proxy successfully connect to silo host");
                 await senProxy.WaitForShutdownAsync();

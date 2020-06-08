@@ -7,12 +7,7 @@
 
   <ItemGroup>
     <PackageReference Include="BenchmarkDotNet" Version="0.12.1" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\..\DotNetty\src\DotNetty.Buffers\DotNetty.Buffers.csproj" />
-    <ProjectReference Include="..\..\DotNetty\src\DotNetty.Common\DotNetty.Common.csproj" />
-    <ProjectReference Include="..\Sen.Utilities\Sen.Utilities.csproj" />
+    <PackageReference Include="MessagePack" Version="2.1.115" />
   </ItemGroup>
 
 </Project>

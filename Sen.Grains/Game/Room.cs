@@ -10,20 +10,26 @@ using System.Threading.Tasks;
 
 namespace Sen.Game
 {
-    public class Room : Grain, IRoom
-    {
-        private delegate ValueTask<IUnionData> ProcessMessage(IUnionData message, IPlayer player);
-        private readonly Dictionary<RuntimeTypeHandle, ProcessMessage>
-            _messageHandlers = new Dictionary<RuntimeTypeHandle, ProcessMessage>();
+    public delegate void PlayerChange(IPlayer player);
 
-        protected object _matchId;
+    public abstract class Room : Grain, IRoom
+    {
+        protected long _matchId;
         protected string _roomName;
         protected string _password;
         protected int _playerLimit;
         protected ILobby _parent;
-        protected List<IPlayer> _players;
+        protected IDictionary<string, IPlayer> _players;
 
-        public ValueTask<object> MatchId => new ValueTask<object>(_matchId);
+        public event PlayerChange PlayerJoined;
+
+        public event PlayerChange PlayerLeft;
+
+        public event PlayerChange PlayerJoining;
+
+        public event PlayerChange PlayerLeaving;
+
+        public ValueTask<long> MatchId => new ValueTask<long>(_matchId);
 
         public ValueTask<string> RoomName => new ValueTask<string>(_roomName);
 
@@ -35,77 +41,77 @@ namespace Sen.Game
 
         public ValueTask<bool> IsLobby => new ValueTask<bool>(false);
 
-        public ValueTask<List<IPlayer>> Players => new ValueTask<List<IPlayer>>(_players);
+        public ValueTask<bool> IsFull => new ValueTask<bool>(_players.Count >= _playerLimit);
 
-        public Room()
-        {
-            InitializeMessageHandler();
-        }
+        public ValueTask<ICollection<IPlayer>> Players => new ValueTask<ICollection<IPlayer>>(_players.Values);
 
         /// <summary>
-        /// Process a message data. Inherited class create its own overloaded version to
-        /// process a specific message.
+        /// Handle a message object. Inherited class create its own overloaded version to
+        /// handle a specific message.
         /// </summary>
         /// <returns>A <see cref="IUnionData"/> will be serialized and returned to game client or null to send nothing</returns>
-#pragma warning disable IDE0052 // Remove unread private members
-        private IUnionData Process(IUnionData _) => null;
-#pragma warning restore IDE0052 // Remove unread private members
+        protected ValueTask<IUnionData> HandleMessage(IUnionData message, IPlayer player) => default;
 
         /// <summary>
-        /// Handle a message from client. Calling <see cref="Process"/> overloaded mothods in this class as a handler
+        /// Body of this method must be
+        /// <code>return HandleMessage((dynamic)message, player);</code>
+        /// to call appropriate <see cref="HandleMessage"/> overload for each message type.
         /// </summary>
-        /// <param name="data"></param>
+        /// <param name="message"></param>
+        /// <param name="player"></param>
         /// <returns></returns>
-        public async ValueTask<IUnionData> HandleMessage(IUnionData message, IPlayer player)
+        public ValueTask<IUnionData> HandleRoomMessage(IUnionData message, IPlayer player)
         {
-            IUnionData returnedData = null;
-            if (_messageHandlers.TryGetValue(Type.GetTypeHandle(message), out ProcessMessage processMessage))
-            {
-                returnedData = await processMessage(message, player);
-            }
-
-            return returnedData;
+            return ((dynamic)this).HandleMessage((dynamic)message, player);
         }
 
-        public ValueTask JoinRoom(IPlayer player)
+        public async ValueTask<bool> JoinRoom(IPlayer player)
         {
-            throw new NotImplementedException();
-        }
-
-        private void InitializeMessageHandler()
-        {
-            Type type = GetType();
-            MethodInfo[] allMethods = type.GetMethods().Where(isProcessMothod).ToArray();
-            foreach (var method in allMethods)
+            if (!IsFull.Result)
             {
-                ProcessMessage del = method.Attributes == MethodAttributes.Static
-                    ? (ProcessMessage)method.CreateDelegate(typeof(ProcessMessage))
-                    : (ProcessMessage)method.CreateDelegate(typeof(ProcessMessage), this);
-                _messageHandlers.Add(method.GetParameters()[0].ParameterType.TypeHandle, del);
+                string playerName = await player.Name;
+                if (!_players.ContainsKey(await player.Name))
+                {
+                    OnPlayerJoining(player);
+                    _players.Add(playerName, player);
+                    OnPlayerJoined(player);
+                    return true;
+                }
             }
 
-            static bool isProcessMothod(MethodInfo method)
-            {
-                if (method.Name != "Process")
-                {
-                    return false;
-                }
-                ParameterInfo[] @params = method.GetParameters();
-                static bool isMessagePackOject(CustomAttributeData attr)
-                    => attr.AttributeType == typeof(MessagePackObjectAttribute);
-                static bool isIPlayerType(Type type)
-                {
-                    return (type.IsInterface && type.Equals(typeof(IPlayer)))
-                        || type.GetInterface(nameof(IPlayer)) != null;
-                }
-                if (@params.Length != 2
-                    || !@params[0].ParameterType.CustomAttributes.Any(isMessagePackOject)
-                    || !isIPlayerType(@params[1].ParameterType))
-                {
-                    return false;
-                }
-                return true;
-            }
+            return false;
         }
+
+        protected virtual async ValueTask<bool> RemovePlayer(IPlayer player)
+        {
+            return _players.Remove(await player.Name);
+        }
+
+        public ValueTask SetParent(ILobby room)
+        {
+            _parent = room;
+            return default;
+        }
+
+        protected virtual void OnPlayerJoined(IPlayer joinedPlayer)
+        {
+            PlayerJoined?.Invoke(joinedPlayer);
+        }
+
+        protected virtual void OnPlayerJoining(IPlayer joiningPlayer)
+        {
+            PlayerJoining?.Invoke(joiningPlayer);
+        }
+
+        protected virtual void OnPlayerLeft(IPlayer leftPlayer)
+        {
+            PlayerLeft?.Invoke(leftPlayer);
+        }
+
+        protected virtual void OnPlayerLeaving(IPlayer leavingPlayer)
+        {
+            PlayerLeaving?.Invoke(leavingPlayer);
+        }
+
     }
 }

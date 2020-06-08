@@ -31,17 +31,21 @@ namespace Sen.Proxy
         private IEventLoopGroup workGroup;
         private List<IChannel> channels;
 
-        public static ILoggerFactory LoggerFactory { get; } = new NLogLoggerFactory();
+        public static ILoggerFactory LoggerFactory { get; }
+
+        static DotNettyProxy()
+        {
+            LoggerFactory = new NLogLoggerFactory();
+            Utilities.InternalLogger.LoggerFactory = LoggerFactory;
+            DotNetty.Common.Internal.Logging.InternalLoggerFactory.DefaultFactory = LoggerFactory;
+        }
 
         public IServiceProvider Services => throw new NotImplementedException();
 
-        private GrainFactory grainFactory;
+        private IPlayerFactory grainFactory;
 
         public DotNettyProxy()
         {
-            Utilities.InternalLogger.LoggerFactory = LoggerFactory;
-            DotNetty.Common.Internal.Logging.InternalLoggerFactory.DefaultFactory = LoggerFactory;
-
             ProxyConfig = new ProxyConfig("ProxyConfig.json").Load();
 
             Console.Title = "Sen Proxy - Client";
@@ -203,7 +207,7 @@ namespace Sen.Proxy
             }
         }
 
-        public void SetGrainFactory(GrainFactory grainFactory)
+        public void SetGrainFactory(IPlayerFactory grainFactory)
         {
             this.grainFactory = grainFactory;
         }

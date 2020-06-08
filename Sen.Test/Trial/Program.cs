@@ -6,7 +6,8 @@ namespace Trial
     {
         static void Main(string[] args)
         {
-            MessagePack.Attemp();
+            new DynamicSub().Run();
+            //MessagePack.Attemp();
         }
     }
 }

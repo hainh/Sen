@@ -3,10 +3,13 @@ using Sen.Game;
 
 namespace Sen.Interfaces
 {
-    public delegate IPlayer GrainFactory(string playerId);
-
     public interface ISenProxy : IHost
     {
-        void SetGrainFactory(GrainFactory grainFactory);
+        void SetGrainFactory(IPlayerFactory grainFactory);
+    }
+
+    public interface IPlayerFactory
+    {
+        IPlayer CreatePlayer(string playerId);
     }
 }

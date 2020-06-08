@@ -13,14 +13,18 @@ namespace Sen.Game
     public interface IPlayer
     {
         /// <summary>
+        /// Get Player's ID (name)
+        /// </summary>
+        ValueTask<string> Name { get; }
+        /// <summary>
         /// Get room grain id
         /// </summary>
         ValueTask<IRoom> Room { get; }
         /// <summary>
-        /// Set room grain id
+        /// Set Room this player is living
         /// </summary>
-        /// <param name="room">Room grain</param>
-        ValueTask SetRoom(IRoom room);
+        /// <param name="room">Room this player'd joined</param>
+        ValueTask SetRoomJoined(IRoom room);
         /// <summary>
         /// Is this player disconnected and became a bot
         /// </summary>

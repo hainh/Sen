@@ -10,18 +10,21 @@ namespace Sen.Game
 {
     public interface IRoom
     {
-        ValueTask<object> MatchId { get; }
+        ValueTask<long> MatchId { get; }
         ValueTask<string> RoomName { get; }
         ValueTask<string> Password { get; }
         ValueTask<int> PlayerLimit { get; }
+        ValueTask<bool> IsFull { get; }
 
         ValueTask<ILobby> Parent { get; }
         ValueTask<bool> IsLobby { get; }
 
-        ValueTask<List<IPlayer>> Players { get; }
+        ValueTask<ICollection<IPlayer>> Players { get; }
 
-        ValueTask JoinRoom(IPlayer player);
+        ValueTask SetParent(ILobby room);
 
-        ValueTask<IUnionData> HandleMessage(IUnionData message, IPlayer player);
+        ValueTask<bool> JoinRoom(IPlayer player);
+
+        ValueTask<IUnionData> HandleRoomMessage(IUnionData message, IPlayer player);
     }
 }

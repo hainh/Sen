@@ -1,5 +1,4 @@
 ﻿using BenchmarkDotNet.Attributes;
-using Sen.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,7 +9,7 @@ namespace Benchmarking
 {
     public class LessKeyReadOnlyDictionaryBenchmark
     {
-        public LessKeyReadOnlyDictionary<RuntimeTypeHandle, int> LK15;
+        /*public LessKeyReadOnlyDictionary<RuntimeTypeHandle, int> LK15;
         public LessKeyReadOnlyDictionary<RuntimeTypeHandle, int> LK35;
         public Dictionary<RuntimeTypeHandle, int> Dict;
 
@@ -67,6 +66,6 @@ namespace Benchmarking
         {
             Dict.TryGetValue(param15, out int v);
             return v;
-        }
+        }*/
     }
 }

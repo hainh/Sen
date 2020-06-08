@@ -14,20 +14,22 @@ using Sen.Interfaces;
 using System.Net;
 using Orleans.Concurrency;
 using Sen.Game;
+using Microsoft.Extensions.Logging;
 
 namespace Sen.Proxy
 {
     public class WebSocketServerHandler : SimpleChannelInboundHandler<object>
     {
-        readonly GrainFactory _grainFactory;
+        static readonly ILogger<WebSocketServerHandler> logger = DotNettyProxy.LoggerFactory.CreateLogger<WebSocketServerHandler>();
+        readonly IPlayerFactory _playerFactory;
         readonly UseExternalProxy _useExternalProxy;
         const string WebsocketPath = "/websocket";
         WebSocketServerHandshaker _handshaker;
         IPlayer _proxyConnection;
 
-        public WebSocketServerHandler(GrainFactory grainFactory, UseExternalProxy useExternalProxy)
+        public WebSocketServerHandler(IPlayerFactory grainFactory, UseExternalProxy useExternalProxy)
         {
-            _grainFactory = grainFactory;
+            _playerFactory = grainFactory;
             _useExternalProxy = useExternalProxy;
         }
 
@@ -79,7 +81,7 @@ namespace Sen.Proxy
                     remoteIpEndPoint = GetRealRemoteEndPoint(req, remoteIpEndPoint);
                 }
                 //Create the grain to communicate with the server(silo)
-                _proxyConnection = _grainFactory(uriComponent[1]);
+                _proxyConnection = _playerFactory.CreatePlayer(uriComponent[1]);
                 _proxyConnection.InitConnection(ctx.Channel.LocalAddress, remoteIpEndPoint, uriComponent[2]);
 
                 _handshaker.HandshakeAsync(ctx.Channel, req);
@@ -116,19 +118,24 @@ namespace Sen.Proxy
             ctx.CloseAsync();
         }
 
-        void ForwardDataToServer(IChannelHandlerContext ctx, WebSocketFrame frame)
+        async void ForwardDataToServer(IChannelHandlerContext ctx, WebSocketFrame frame)
         {
-            var buffer = new byte[frame.Content.ReadableBytes];
-            frame.Content.ReadBytes(buffer);
-            _proxyConnection.Read(buffer.AsImmutable()).ContinueWith((Task<Immutable<byte[]>> task, object state) =>
+            try
             {
-                if (task.Result.Value != null && state is IChannelHandlerContext ctx)
+                var buffer = new byte[frame.Content.ReadableBytes];
+                frame.Content.ReadBytes(buffer);
+                var dataWriteBack = await _proxyConnection.Read(buffer.AsImmutable());
+                if (dataWriteBack.Value != null)
                 {
-                    var result = Unpooled.WrappedBuffer(task.Result.Value);
+                    var result = Unpooled.WrappedBuffer(dataWriteBack.Value);
                     var f = new BinaryWebSocketFrame(result);
-                    ctx.WriteAndFlushAsync(f);
+                    await ctx.WriteAndFlushAsync(f);
                 }
-            }, ctx, TaskContinuationOptions.ExecuteSynchronously);
+            }
+            catch (Exception e)
+            {
+                logger.LogDebug(e, e.Message);
+            }
         }
 
         static void SendHttpResponse(IChannelHandlerContext ctx, IFullHttpRequest req, IFullHttpResponse res)
