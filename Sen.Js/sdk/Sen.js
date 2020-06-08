@@ -177,7 +177,7 @@ function internalInitSen(Sen){
 						var {valueName, keyCode, type, isArray} = values[i];
 						if (MessageTypes[type]) {
 							destObject[valueName] = isArray 
-								? msgpackData.map(msgpackDataElement => setValue(msgpackDataElement, MessageTypes[type](), MessageTypes))
+								? msgpackData[keyCode].map(msgpackDataElement => setValue(msgpackDataElement, MessageTypes[type](), MessageTypes))
 								: setValue(msgpackData[keyCode], MessageTypes[type](), MessageTypes);
 						} else {
 							destObject[valueName] = msgpackData[keyCode];
@@ -187,7 +187,7 @@ function internalInitSen(Sen){
 				}
 				wiredData.ServiceCode = obj[0];
 				var unionCode = obj[1][0];
-				var unionType = MessageTypes.__innerTypes__[unionCode + ''];
+				var unionType = MessageTypes.__innerTypesByCode__[unionCode + ''];
 				wiredData.Data = setValue(obj[1][1], MessageTypes[unionType.className](), MessageTypes);
 				return wiredData;
 			}
@@ -198,10 +198,14 @@ function internalInitSen(Sen){
 	(function processMessageTypes(MessageTypes) {
 		var {types} = MessageTypes,
 			typeDict = MessageTypes.__innerTypes__ = {},
+			typeCodeDict = MessageTypes.__innerTypesByCode__ = {},
 			type;
 		for (var i = types.length - 1; i >= 0; i--) {
 			type = types[i];
-			typeDict[type['className']] = typeDict[type['keyCode'] + ''] = type;
+			typeDict[type['className']] = type;
+			if (type['unionCode'] >= 0) {
+				typeCodeDict[type['unionCode'] + ''] = type;
+			}
 		}
 	})(MessageTypes);
 	MessageTypes.createType = function() {
@@ -209,9 +213,9 @@ function internalInitSen(Sen){
 			eval(`var ctor = function ${className}(){if(!new.target)return new ${className}();}`);
 			var typeData = this.__innerTypes__[className];
 			this[className] = ctor;
-			for (var i = typeData['values'].length - 1; i >= 0; i--) {
+			for (var i = 0; i < typeData['values'].length; i++) {
 				var {valueName, keyCode, type, isArray} = typeData['values'][i];
-				Object.defineProperty(ctor.prototype, valueName, defineGetterAndSetter(valueName, type, isArray, /*Sen.Logger*/console));
+				Object.defineProperty(ctor.prototype, valueName, defineGetterAndSetter(valueName, type, isArray, Sen.Logger));
 			}
 			ctor.prototype.toJSON = function() {
 				var props = Object.getOwnPropertyDescriptors(this.constructor.prototype);
@@ -258,7 +262,7 @@ function internalInitSen(Sen){
 				var elementValidator = buildElementValidator(valueName, type);
 				if (elementValidator) {
 					return isArray
-						? 'for (var i = arr.length - 1; i >= 0; i--) \n{ var v = val[i];\n' + elementValidator + '\n}'
+						? 'if (val) for (var i = val.length - 1; i >= 0; i--) \n{ var v = val[i];\n' + elementValidator + '\n}'
 						: 'var v = val;\n' + elementValidator;
 				}
 				return '';
@@ -266,7 +270,7 @@ function internalInitSen(Sen){
 			function buildSetter(valueName, type, isArray) {
 				switch (type) {
 					case 'Boolean': 
-						return `function setter (val) { __rawData = ${isArray ? 'val.map(v => !!v)' : '!!val'};};`;
+						return `function setter (val) { __rawData = ${isArray ? 'val && val.map(v => !!v)' : '!!val'};};`;
 					case 'Byte':
 					case 'SByte':
 					case 'Char':
@@ -281,7 +285,7 @@ function internalInitSen(Sen){
 					case 'Single':
 						return `function setter (val){
 							${buildValidator(valueName, type, isArray)}
-							__rawData = ${isArray ? 'val.map(v => +v)' : '+val'};
+							__rawData = ${isArray ? 'val && val.map(v => +v)' : '+val'};
 						};`;
 					case 'String':
 						return `function setter (val) {
@@ -290,8 +294,8 @@ function internalInitSen(Sen){
 					default:
 						if (MessageTypes.__innerTypes__[type]) {
 							return `function setter(val){
-								if (!(val instanceof MessageTypes['${type}'])) {
-									${Sen.throwOnDataError ? 'throw ' : 'logger.error'}(\`Value of \${this.constructor.name}.${valueName} = \${val} is not instanceof ${type}\`);
+								if (val != null && val != undefined && ${isArray ? `val.find(v => !(v instanceof MessageTypes.${type}))` : `!(val instanceof MessageTypes.${type})`}) {
+									${Sen.throwOnDataError ? 'throw ' : 'logger.error'}(\`Value of \${this.constructor.name}.${valueName} = \${JSON.stringify(val)} (\${val.constructor.name}) is not instanceof ${type}\`);
 								}
 								__rawData = val;
 							};`

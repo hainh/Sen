@@ -254,10 +254,14 @@
 		(function processMessageTypes(MessageTypes) {
 			var {types} = MessageTypes,
 				typeDict = MessageTypes.__innerTypes__ = {},
+				typeCodeDict = MessageTypes.__innerTypesByCode__ = {},
 				type;
 			for (var i = types.length - 1; i >= 0; i--) {
 				type = types[i];
-				typeDict[type['className']] = typeDict[type['keyCode'] + ''] = type;
+				typeDict[type['className']] = type;
+				if (type['unionCode'] >= 0) {
+					typeCodeDict[type['unionCode'] + ''] = type;
+				}
 			}
 		})(MessageTypes);
 		MessageTypes.createType = function() {
@@ -265,7 +269,7 @@
 				eval(`var ctor = function ${className}(){if(!new.target)return new ${className}();}`);
 				var typeData = this.__innerTypes__[className];
 				this[className] = ctor;
-				for (var i = typeData['values'].length - 1; i >= 0; i--) {
+				for (var i = 0; i < typeData['values'].length; i++) {
 					var {valueName, keyCode, type, isArray} = typeData['values'][i];
 					Object.defineProperty(ctor.prototype, valueName, defineGetterAndSetter(valueName, type, isArray, Sen.Logger));
 				}
@@ -314,7 +318,7 @@
 					var elementValidator = buildElementValidator(valueName, type);
 					if (elementValidator) {
 						return isArray
-							? 'for (var i = arr.length - 1; i >= 0; i--) \n{ var v = val[i];\n' + elementValidator + '\n}'
+							? 'if (val) for (var i = val.length - 1; i >= 0; i--) \n{ var v = val[i];\n' + elementValidator + '\n}'
 							: 'var v = val;\n' + elementValidator;
 					}
 					return '';
@@ -322,7 +326,7 @@
 				function buildSetter(valueName, type, isArray) {
 					switch (type) {
 						case 'Boolean': 
-							return `function setter (val) { __rawData = ${isArray ? 'val.map(v => !!v)' : '!!val'};};`;
+							return `function setter (val) { __rawData = ${isArray ? 'val && val.map(v => !!v)' : '!!val'};};`;
 						case 'Byte':
 						case 'SByte':
 						case 'Char':
@@ -337,7 +341,7 @@
 						case 'Single':
 							return `function setter (val){
 								${buildValidator(valueName, type, isArray)}
-								__rawData = ${isArray ? 'val.map(v => +v)' : '+val'};
+								__rawData = ${isArray ? 'val && val.map(v => +v)' : '+val'};
 							};`;
 						case 'String':
 							return `function setter (val) {
@@ -346,8 +350,8 @@
 						default:
 							if (MessageTypes.__innerTypes__[type]) {
 								return `function setter(val){
-									if (val != null && val != undefined && !(val instanceof MessageTypes['${type}'])) {
-										${Sen.throwOnDataError ? 'throw ' : 'logger.error'}(\`Value of \${this.constructor.name}.${valueName} = \${val} is not instanceof ${type}\`);
+									if (val != null && val != undefined && ${isArray ? `val.find(v => !(v instanceof MessageTypes.${type}))` : `!(val instanceof MessageTypes.${type})`}) {
+										${Sen.throwOnDataError ? 'throw ' : 'logger.error'}(\`Value of \${this.constructor.name}.${valueName} = \${JSON.stringify(val)} (\${val.constructor.name}) is not instanceof ${type}\`);
 									}
 									__rawData = val;
 								};`
@@ -367,6 +371,38 @@
 				}
 			}
 		}
+		MessageTypes.createType();
+		var data = [146,44,146,2,220,0,31,195,0,0,0,161,48,203,0,0,0,0,0,0,0,0,202,0,0,0,0,0,0,0,0,0,0,192,1,192,192,192,192,192,192,192,192,192,192,192,192,192,192,147,206,0,1,226,64,165,55,56,57,49,48,208,133,145,147,206,0,1,226,64,165,55,56,57,49,48,208,133]
+		var message = {data};
+
+		function parseData (message) {
+			var rawData = new Uint8Array(message.data);
+			var obj = MessagePack.decode(rawData);
+			var wiredData = {};
+			function setValue(msgpackData, destObject, MessageTypes) {
+				var name = destObject.constructor.name;
+				var typeDescObj = MessageTypes.__innerTypes__[name];
+				var {values} = typeDescObj;
+
+				for (var i = values.length - 1; i >= 0; i--) {
+					var {valueName, keyCode, type, isArray} = values[i];
+					if (MessageTypes[type]) {
+						destObject[valueName] = isArray 
+							? msgpackData[keyCode].map(msgpackDataElement => setValue(msgpackDataElement, MessageTypes[type](), MessageTypes))
+							: setValue(msgpackData[keyCode], MessageTypes[type](), MessageTypes);
+					} else {
+						destObject[valueName] = msgpackData[keyCode];
+					}
+				}
+				return destObject;
+			}
+			wiredData.ServiceCode = obj[0];
+			var unionCode = obj[1][0];
+			var unionType = MessageTypes.__innerTypesByCode__[unionCode + ''];
+			wiredData.Data = setValue(obj[1][1], MessageTypes[unionType.className](), MessageTypes);
+			return wiredData;
+		}
+		var typedData = parseData(message);
 	</script>
 </body>
 </html>
