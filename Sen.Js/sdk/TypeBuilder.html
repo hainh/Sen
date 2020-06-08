@@ -5,30 +5,17 @@
 	<title>Document</title>
 </head>
 <body>
+	<script src="msgpack.js"></script>
 	<script>
+		this.Sen = {
+			throwOnDataError: false,
+			Logger: console
+		}
 		this.MessageTypes = {
 		  "types": [
 		    {
-		      "className": "MyServiceData",
-		      "unionCode": -1,
-		      "values": [
-		        {
-		          "valueName": "MyData",
-		          "keyCode": 1,
-		          "type": "TUnion",
-		          "isArray": false
-		        },
-		        {
-		          "valueName": "ServiceCode",
-		          "keyCode": 0,
-		          "type": "Int32",
-		          "isArray": false
-		        }
-		      ]
-		    },
-		    {
 		      "className": "MyData",
-		      "unionCode": -1,
+		      "unionCode": 1,
 		      "values": [
 		        {
 		          "valueName": "A",
@@ -52,7 +39,7 @@
 		    },
 		    {
 		      "className": "MyData2",
-		      "unionCode": 10000,
+		      "unionCode": 2,
 		      "values": [
 		        {
 		          "valueName": "A",
@@ -143,6 +130,120 @@
 		          "keyCode": 14,
 		          "type": "Int32",
 		          "isArray": false
+		        },
+		        {
+		          "valueName": "AA",
+		          "keyCode": 15,
+		          "type": "Boolean",
+		          "isArray": true
+		        },
+		        {
+		          "valueName": "AB",
+		          "keyCode": 16,
+		          "type": "Byte",
+		          "isArray": true
+		        },
+		        {
+		          "valueName": "AC",
+		          "keyCode": 17,
+		          "type": "SByte",
+		          "isArray": true
+		        },
+		        {
+		          "valueName": "AD",
+		          "keyCode": 18,
+		          "type": "Char",
+		          "isArray": true
+		        },
+		        {
+		          "valueName": "AE",
+		          "keyCode": 19,
+		          "type": "Decimal",
+		          "isArray": true
+		        },
+		        {
+		          "valueName": "AF",
+		          "keyCode": 20,
+		          "type": "Double",
+		          "isArray": true
+		        },
+		        {
+		          "valueName": "AG",
+		          "keyCode": 21,
+		          "type": "Single",
+		          "isArray": true
+		        },
+		        {
+		          "valueName": "AH",
+		          "keyCode": 22,
+		          "type": "Int32",
+		          "isArray": true
+		        },
+		        {
+		          "valueName": "AI",
+		          "keyCode": 23,
+		          "type": "UInt32",
+		          "isArray": true
+		        },
+		        {
+		          "valueName": "AJ",
+		          "keyCode": 24,
+		          "type": "Int64",
+		          "isArray": true
+		        },
+		        {
+		          "valueName": "AK",
+		          "keyCode": 25,
+		          "type": "UInt64",
+		          "isArray": true
+		        },
+		        {
+		          "valueName": "AL",
+		          "keyCode": 26,
+		          "type": "Int16",
+		          "isArray": true
+		        },
+		        {
+		          "valueName": "AM",
+		          "keyCode": 27,
+		          "type": "UInt16",
+		          "isArray": true
+		        },
+		        {
+		          "valueName": "AN",
+		          "keyCode": 28,
+		          "type": "String",
+		          "isArray": true
+		        },
+		        {
+		          "valueName": "MyData",
+		          "keyCode": 29,
+		          "type": "MyData",
+		          "isArray": false
+		        },
+		        {
+		          "valueName": "MyDatas",
+		          "keyCode": 30,
+		          "type": "MyData",
+		          "isArray": true
+		        }
+		      ]
+		    },
+		    {
+		      "className": "WiredData",
+		      "unionCode": -1,
+		      "values": [
+		        {
+		          "valueName": "ServiceCode",
+		          "keyCode": 0,
+		          "type": "Int32",
+		          "isArray": false
+		        },
+		        {
+		          "valueName": "Data",
+		          "keyCode": 1,
+		          "type": "TUnionDataInterface",
+		          "isArray": false
 		        }
 		      ]
 		    }
@@ -156,7 +257,7 @@
 				type;
 			for (var i = types.length - 1; i >= 0; i--) {
 				type = types[i];
-				typeDict[type['className']] = type;
+				typeDict[type['className']] = typeDict[type['keyCode'] + ''] = type;
 			}
 		})(MessageTypes);
 		MessageTypes.createType = function() {
@@ -166,7 +267,7 @@
 				this[className] = ctor;
 				for (var i = typeData['values'].length - 1; i >= 0; i--) {
 					var {valueName, keyCode, type, isArray} = typeData['values'][i];
-					Object.defineProperty(ctor.prototype, valueName, defineGetterAndSetter(valueName, type, isArray, /*Sen.Logger*/console));
+					Object.defineProperty(ctor.prototype, valueName, defineGetterAndSetter(valueName, type, isArray, Sen.Logger));
 				}
 				ctor.prototype.toJSON = function() {
 					var props = Object.getOwnPropertyDescriptors(this.constructor.prototype);
@@ -245,8 +346,8 @@
 						default:
 							if (MessageTypes.__innerTypes__[type]) {
 								return `function setter(val){
-									if (!(val instanceof MessageTypes['${type}'])) {
-										${Sen.throwOnDataError ? 'throw ' : 'logger.error'}(\`Value of \${this.constructor.name}.${valueName} = \${v} is not instanceof ${type}\`);
+									if (val != null && val != undefined && !(val instanceof MessageTypes['${type}'])) {
+										${Sen.throwOnDataError ? 'throw ' : 'logger.error'}(\`Value of \${this.constructor.name}.${valueName} = \${val} is not instanceof ${type}\`);
 									}
 									__rawData = val;
 								};`

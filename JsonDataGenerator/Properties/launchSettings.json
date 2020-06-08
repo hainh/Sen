@@ -2,7 +2,7 @@
   "profiles": {
     "JsonDataGenerator": {
       "commandName": "Project",
-      "commandLineArgs": "D:\\Projects\\Sen\\Sen.Test\\Trial\\bin\\Debug\\netcoreapp3.1"
+      "commandLineArgs": "..\\..\\..\\..\\Sen.Test\\Trial\\bin\\Debug\\netcoreapp3.1"
     }
   }
 }

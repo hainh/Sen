@@ -1,5 +1,6 @@
 this.Sen = {};
-this.initSen = function() {
+this.initSen = function(throwOnDataError) {
+	Sen.throwOnDataError = throwOnDataError;
 	internalInitSen(Sen);
 }
 function internalInitSen(Sen){
@@ -112,6 +113,7 @@ function internalInitSen(Sen){
 				this_.isConnecting = 0;
 				this_.isConnected = 0;
 				this_.onStatusChanged = function() {};
+				this_.handlers = {};
 			},
 			connect: function (uri) {
 				var this_ = this;
@@ -125,44 +127,24 @@ function internalInitSen(Sen){
 				var socket = this_.socket = new WebSocket(uri);
 				socket.binaryType = "arraybuffer";
 
-				socket.onopen = function(ev) {
-					this_.isConnected = 1;
-					this_.isConnecting = 0;
-					this_.onStatusChanged(Status.CONNECTED);
-				};
+				socket.onopen = (function(ev) {
+					this.isConnected = 1;
+					this.isConnecting = 0;
+					this.onStatusChanged(Status.CONNECTED);
+				}).bind(this);
 
-				socket.onclose = function (ev) {
+				socket.onclose = (function (ev) {
 					console.log(ev);
-					this_.onStatusChanged(Status.DISCONNECTED);
-					this_.isConnected = 0;
-					this_.isConnecting = 0;
-				};
+					this.onStatusChanged(Status.DISCONNECTED);
+					this.isConnected = 0;
+					this.isConnecting = 0;
+				}).bind(this);
 
 				socket.onerror = function(ev) {
 					console.log(ev, ev.code);
 				};
 
-				socket.onmessage = function(message) {
-					var rawData = new Uint8Array(message.data);
-					var data = Sen.Data.DeserializeData(rawData);
-					var types = Sen.Data.ServiceTypes;
-					switch (data["sc"]) {
-						case types.EventData:
-							this_.onEvent(data, false);
-							break;
-						case types.OperationData:
-							this_.onResponse(data, false);
-							break;
-						case types.PingData:
-							this_._sendPingData__removethismethod__(data);
-							break;
-						case types.ConfigData:
-							break;
-						case types.EncryptData:
-							// Decrypt message
-							break;
-					}
-				};
+				socket.onmessage = this.__onMessage.bind(this);
 			},
 			disconnect: function() {
 				var this_ = this;
@@ -179,132 +161,158 @@ function internalInitSen(Sen){
 					this_.socket.send(rawData);
 				}
 			},
+			handleMessage: function(messageType, handler) {
+				this.handlers[messageType] = handler;
+			},
+			__onMessage: function (message) {
+				var rawData = new Uint8Array(message.data);
+				var obj = MessagePack.decode(rawData);
+				var wiredData = {};
+				function setValue(msgpackData, destObject, MessageTypes) {
+					var name = destObject.constructor.name;
+					var typeDescObj = MessageTypes.__innerTypes__[name];
+					var {values} = typeDescObj;
+
+					for (var i = values.length - 1; i >= 0; i--) {
+						var {valueName, keyCode, type, isArray} = values[i];
+						if (MessageTypes[type]) {
+							destObject[valueName] = isArray 
+								? msgpackData.map(msgpackDataElement => setValue(msgpackDataElement, MessageTypes[type](), MessageTypes))
+								: setValue(msgpackData[keyCode], MessageTypes[type](), MessageTypes);
+						} else {
+							destObject[valueName] = msgpackData[keyCode];
+						}
+					}
+					return destObject;
+				}
+				wiredData.ServiceCode = obj[0];
+				var unionCode = obj[1][0];
+				var unionType = MessageTypes.__innerTypes__[unionCode + ''];
+				wiredData.Data = setValue(obj[1][1], MessageTypes[unionType.className](), MessageTypes);
+				return wiredData;
+			}
 		});
 
 	})(Sen);
 
-	Sen.Data = {};
-
-	(function(Data){
-		(function processMessageTypes(MessageTypes) {
-			var {types} = MessageTypes,
-				typeDict = MessageTypes.__innerTypes__ = {},
-				type;
-			for (var i = types.length - 1; i >= 0; i--) {
-				type = types[i];
-				typeDict[type['className']] = type;
+	(function processMessageTypes(MessageTypes) {
+		var {types} = MessageTypes,
+			typeDict = MessageTypes.__innerTypes__ = {},
+			type;
+		for (var i = types.length - 1; i >= 0; i--) {
+			type = types[i];
+			typeDict[type['className']] = typeDict[type['keyCode'] + ''] = type;
+		}
+	})(MessageTypes);
+	MessageTypes.createType = function() {
+		for (var className in this.__innerTypes__) {
+			eval(`var ctor = function ${className}(){if(!new.target)return new ${className}();}`);
+			var typeData = this.__innerTypes__[className];
+			this[className] = ctor;
+			for (var i = typeData['values'].length - 1; i >= 0; i--) {
+				var {valueName, keyCode, type, isArray} = typeData['values'][i];
+				Object.defineProperty(ctor.prototype, valueName, defineGetterAndSetter(valueName, type, isArray, /*Sen.Logger*/console));
 			}
-		})(MessageTypes);
-		MessageTypes.createType = function() {
-			for (var className in this.__innerTypes__) {
-				eval(`var ctor = function ${className}(){if(!new.target)return new ${className}();}`);
-				var typeData = this.__innerTypes__[className];
-				this[className] = ctor;
-				for (var i = typeData['values'].length - 1; i >= 0; i--) {
-					var {valueName, keyCode, type, isArray} = typeData['values'][i];
-					Object.defineProperty(ctor.prototype, valueName, defineGetterAndSetter(valueName, type, isArray, /*Sen.Logger*/console));
-				}
-				ctor.prototype.toJSON = function() {
-					var props = Object.getOwnPropertyDescriptors(this.constructor.prototype);
-					var jsonObj = {};
-					for (var propName in props) {
-						if (typeof props[propName].get === 'function') {
-							jsonObj[propName] = this[propName];
-						}
-					}
-					return jsonObj;
-				}
-			}
-
-			function defineGetterAndSetter(valueName, type, isArray, logger) {
-				var minMax = {
-					'Byte': [0, 0xFF],
-					'SByte': [-0x7F, 0x7F],
-					'Char': [0, 0xFFFF],
-					'UInt16': [0, 0xFFFF],
-					'Int16': [-0x7FFF, 0x7FFF],
-					'UInt32': [0, 0xFFFFFFFF],
-					'Int32': [-0x7FFFFFFF, 0x7FFFFFFF],
-					'UInt64': [0, 0xFFFFFFFFFFFFFFFF],
-					'Int64': [-0x7FFFFFFFFFFFFFFF, 0x7FFFFFFFFFFFFFFF],
-					'Decimal': 1,
-					'Single' : 1,
-					'Double' : 1,
-				};
-				function buildElementValidator(valueName, type) {
-					var range = minMax[type];
-					if (range === 1) {
-						return `if(isNaN(v)) {${Sen.throwOnDataError ? 'throw ' : 'logger.error'}(\`\${type} value of \${this.constructor.name}.${valueName} = \${v} is not a number\`)}`
-					} else if (range.length === 2) {
-						return `if (isNaN(v) || v - Math.floor(v)) {
-								${Sen.throwOnDataError ? 'throw ' : 'logger.error'}(\`${type} value of \${this.constructor.name}.${valueName} = \${v} is not an integer\`);
-							}
-							else if (v < ${range[0]} || v > ${range[1]}) {
-								${Sen.throwOnDataError ? 'throw ' : 'logger.error'}(\`${type} value of \${this.constructor.name}.${valueName} = \${v} is out of range (${range[0]}, ${range[1]})\`);
-							}`;
-					}
-					return '';
-				}
-				function buildValidator(valueName, type, isArray) {
-					var elementValidator = buildElementValidator(valueName, type);
-					if (elementValidator) {
-						return isArray
-							? 'for (var i = arr.length - 1; i >= 0; i--) \n{ var v = val[i];\n' + elementValidator + '\n}'
-							: 'var v = val;\n' + elementValidator;
-					}
-					return '';
-				}
-				function buildSetter(valueName, type, isArray) {
-					switch (type) {
-						case 'Boolean': 
-							return `function setter (val) { __rawData = ${isArray ? 'val.map(v => !!v)' : '!!val'};};`;
-						case 'Byte':
-						case 'SByte':
-						case 'Char':
-						case 'UInt16':
-						case 'Int16':
-						case 'UInt32':
-						case 'Int32':
-						case 'UInt64':
-						case 'Int64':
-						case 'Decimal':
-						case 'Double':
-						case 'Single':
-							return `function setter (val){
-								${buildValidator(valueName, type, isArray)}
-								__rawData = ${isArray ? 'val.map(v => +v)' : '+val'};
-							};`;
-						case 'String':
-							return `function setter (val) {
-								__rawData = val && ${isArray ? 'val.map(v => v && v.toString())' : 'val.toString();'};
-							};`;
-						default:
-							if (MessageTypes.__innerTypes__[type]) {
-								return `function setter(val){
-									if (!(val instanceof MessageTypes['${type}'])) {
-										${Sen.throwOnDataError ? 'throw ' : 'logger.error'}(\`Value of \${this.constructor.name}.${valueName} = \${v} is not instanceof ${type}\`);
-									}
-									__rawData = val;
-								};`
-							} else {
-								return `function setter(val) {__rawData = val;};`
-							}
+			ctor.prototype.toJSON = function() {
+				var props = Object.getOwnPropertyDescriptors(this.constructor.prototype);
+				var jsonObj = {};
+				for (var propName in props) {
+					if (typeof props[propName].get === 'function') {
+						jsonObj[propName] = this[propName];
 					}
 				}
-				var __rawData = null;
-				var functionSetterScript = buildSetter(valueName, type, isArray);
-				eval(functionSetterScript);
-				var functionGetterScript = `function getter() {return __rawData};`;
-				eval(functionGetterScript);
-				return {
-					get: getter,
-					set: setter
-				}
+				return jsonObj;
 			}
 		}
-		MessageTypes.createType();
-		delete MessageTypes.createType;
-	})(Sen.Data);
+
+		function defineGetterAndSetter(valueName, type, isArray, logger) {
+			var minMax = {
+				'Byte': [0, 0xFF],
+				'SByte': [-0x7F, 0x7F],
+				'Char': [0, 0xFFFF],
+				'UInt16': [0, 0xFFFF],
+				'Int16': [-0x7FFF, 0x7FFF],
+				'UInt32': [0, 0xFFFFFFFF],
+				'Int32': [-0x7FFFFFFF, 0x7FFFFFFF],
+				'UInt64': [0, 0xFFFFFFFFFFFFFFFF],
+				'Int64': [-0x7FFFFFFFFFFFFFFF, 0x7FFFFFFFFFFFFFFF],
+				'Decimal': 1,
+				'Single' : 1,
+				'Double' : 1,
+			};
+			function buildElementValidator(valueName, type) {
+				var range = minMax[type];
+				if (range === 1) {
+					return `if(isNaN(v)) {${Sen.throwOnDataError ? 'throw ' : 'logger.error'}(\`\${type} value of \${this.constructor.name}.${valueName} = \${v} is not a number\`)}`
+				} else if (range.length === 2) {
+					return `if (isNaN(v) || v - Math.floor(v)) {
+							${Sen.throwOnDataError ? 'throw ' : 'logger.error'}(\`${type} value of \${this.constructor.name}.${valueName} = \${v} is not an integer\`);
+						}
+						else if (v < ${range[0]} || v > ${range[1]}) {
+							${Sen.throwOnDataError ? 'throw ' : 'logger.error'}(\`${type} value of \${this.constructor.name}.${valueName} = \${v} is out of range (${range[0]}, ${range[1]})\`);
+						}`;
+				}
+				return '';
+			}
+			function buildValidator(valueName, type, isArray) {
+				var elementValidator = buildElementValidator(valueName, type);
+				if (elementValidator) {
+					return isArray
+						? 'for (var i = arr.length - 1; i >= 0; i--) \n{ var v = val[i];\n' + elementValidator + '\n}'
+						: 'var v = val;\n' + elementValidator;
+				}
+				return '';
+			}
+			function buildSetter(valueName, type, isArray) {
+				switch (type) {
+					case 'Boolean': 
+						return `function setter (val) { __rawData = ${isArray ? 'val.map(v => !!v)' : '!!val'};};`;
+					case 'Byte':
+					case 'SByte':
+					case 'Char':
+					case 'UInt16':
+					case 'Int16':
+					case 'UInt32':
+					case 'Int32':
+					case 'UInt64':
+					case 'Int64':
+					case 'Decimal':
+					case 'Double':
+					case 'Single':
+						return `function setter (val){
+							${buildValidator(valueName, type, isArray)}
+							__rawData = ${isArray ? 'val.map(v => +v)' : '+val'};
+						};`;
+					case 'String':
+						return `function setter (val) {
+							__rawData = val && ${isArray ? 'val.map(v => v && v.toString())' : 'val.toString();'};
+						};`;
+					default:
+						if (MessageTypes.__innerTypes__[type]) {
+							return `function setter(val){
+								if (!(val instanceof MessageTypes['${type}'])) {
+									${Sen.throwOnDataError ? 'throw ' : 'logger.error'}(\`Value of \${this.constructor.name}.${valueName} = \${val} is not instanceof ${type}\`);
+								}
+								__rawData = val;
+							};`
+						} else {
+							return `function setter(val) {__rawData = val;};`
+						}
+				}
+			}
+			var __rawData = null;
+			var functionSetterScript = buildSetter(valueName, type, isArray);
+			eval(functionSetterScript);
+			var functionGetterScript = `function getter() {return __rawData};`;
+			eval(functionGetterScript);
+			return {
+				get: getter,
+				set: setter
+			}
+		}
+	}
+	MessageTypes.createType();
+	delete MessageTypes.createType;
 
 };
 
