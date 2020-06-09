@@ -153,43 +153,24 @@ function internalInitSen(Sen){
 					this_.socket.close();
 				}
 			},
-			send: function(data) {
-				var rawData = Sen.Data.Serialize(data),
-					this_ = this;
-				if (this_.isConnected) {
-					Sen.Logger.debug('Send', data.toString(this_.dataCodes, this_.opCodes));
-					this_.socket.send(rawData);
+			send: function(message) {
+				if (this.isConnected) {
+					var buffer = serialize(message);
+					Sen.Logger.debug('Sending', message.constructor.name, JSON.stringify(message, null, '\t'));
+					this.socket.send(buffer);
+				} else {
+					Sen.Logger.debug('Cannot send data. Connection closed.');
 				}
 			},
 			handleMessage: function(messageType, handler) {
 				this.handlers[messageType] = handler;
 			},
-			__onMessage: function (message) {
-				var rawData = new Uint8Array(message.data);
-				var obj = MessagePack.decode(rawData);
-				var wiredData = {};
-				function setValue(msgpackData, destObject, MessageTypes) {
-					var name = destObject.constructor.name;
-					var typeDescObj = MessageTypes.__innerTypes__[name];
-					var {values} = typeDescObj;
-
-					for (var i = values.length - 1; i >= 0; i--) {
-						var {valueName, keyCode, type, isArray} = values[i];
-						if (MessageTypes[type]) {
-							destObject[valueName] = isArray 
-								? msgpackData[keyCode].map(msgpackDataElement => setValue(msgpackDataElement, MessageTypes[type](), MessageTypes))
-								: setValue(msgpackData[keyCode], MessageTypes[type](), MessageTypes);
-						} else {
-							destObject[valueName] = msgpackData[keyCode];
-						}
-					}
-					return destObject;
-				}
-				wiredData.ServiceCode = obj[0];
-				var unionCode = obj[1][0];
-				var unionType = MessageTypes.__innerTypesByCode__[unionCode + ''];
-				wiredData.Data = setValue(obj[1][1], MessageTypes[unionType.className](), MessageTypes);
-				return wiredData;
+			__onMessage: function (wsMessage) {
+				var buffer = new Uint8Array(wsMessage.data);
+				var message = deserialize(buffer);
+				var handler = this.handlers[message.constructor.name];
+				console.log('Incoming message', message.constructor.name, handler ? '' : 'handler missing', JSON.stringify(message, null, '\t'));
+				handler && handler(message);
 			}
 		});
 
@@ -205,6 +186,15 @@ function internalInitSen(Sen){
 			typeDict[type['className']] = type;
 			if (type['unionCode'] >= 0) {
 				typeCodeDict[type['unionCode'] + ''] = type;
+			}
+			if (!type.values.find(value => value.type === 'Double')) {
+				type.forceFloat32 = true;
+			}
+		}
+		for (var i = types.length - 1; i >= 0; i--) {
+			type = types[i];
+			if (!type.values.find(value => value.type === 'Double' || (typeDict[value.type] && !typeDict[value.type].forceFloat32))) {
+				type.forceFloat32 = true;
 			}
 		}
 	})(MessageTypes);
@@ -318,6 +308,59 @@ function internalInitSen(Sen){
 	MessageTypes.createType();
 	delete MessageTypes.createType;
 
+	/*Serialize a message appended to full wired data to byte buffer*/
+	function serialize (message) {
+		var dataType = message.constructor.name;
+		var typeDesc = MessageTypes.__innerTypes__[dataType];
+		if (!typeDesc || typeDesc.unionCode < 0) {
+			throw `Type MessageTypes.${dataType} is not supported`;
+		}
+		var msgpackData = [0, [typeDesc.unionCode, []]];
+		getValues(message, msgpackData[1][1], MessageTypes);
+		return MessagePack.encode(msgpackData, {forceFloat32: typeDesc.forceFloat32});
+
+		function getValues(message, msgpackData, MessageTypes) {
+			var {values} = MessageTypes.__innerTypes__[message.constructor.name];
+			for (var i = values.length - 1; i >= 0; i--) {
+				var {valueName, keyCode, type, isArray} = values[i];
+				var value = message[valueName];
+				if (MessageTypes[type]) {
+					msgpackData[keyCode] = isArray 
+						? value.map(message => getValues(message, [], MessageTypes))
+						: getValues(value, [], MessageTypes);
+				} else {
+					msgpackData[keyCode] = value;
+				}
+			}
+			return msgpackData;
+		}
+	}
+
+	/*Deserialize a byte buffer to a message object*/
+	function deserialize (buffer) {
+		var obj = MessagePack.decode(buffer);
+		var unionCode = obj[1][0];
+		var unionType = MessageTypes.__innerTypesByCode__[unionCode + ''];
+		return setValue(obj[1][1], MessageTypes[unionType.className](), MessageTypes);
+
+		function setValue(msgpackData, destObject, MessageTypes) {
+			var name = destObject.constructor.name;
+			var {values} = MessageTypes.__innerTypes__[name];
+
+			for (var i = values.length - 1; i >= 0; i--) {
+				var {valueName, keyCode, type, isArray} = values[i],
+					buffer = msgpackData[keyCode];
+				if (MessageTypes[type]) {
+					destObject[valueName] = isArray 
+						? buffer.map(msgpackDataElement => setValue(msgpackDataElement, MessageTypes[type](), MessageTypes))
+						: setValue(buffer, MessageTypes[type](), MessageTypes);
+				} else {
+					destObject[valueName] = buffer;
+				}
+			}
+			return destObject;
+		}
+	}
 };
 
 /*!

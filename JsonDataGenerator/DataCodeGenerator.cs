@@ -105,7 +105,7 @@ namespace JsonDataGenerator
                 .Select(prop => new Value() 
                 { 
                     KeyCode = GetKey(prop),
-                    Type = GetType(prop.PropertyType),
+                    Type = GetType(prop),
                     ValueName = prop.Name,
                     IsArray = prop.PropertyType.IsArray
                 });
@@ -115,15 +115,44 @@ namespace JsonDataGenerator
                 .Select(field => new Value() 
                 { 
                     KeyCode = GetKey(field),
-                    Type = GetType(field.FieldType),
+                    Type = GetType(field),
                     ValueName = field.Name,
                     IsArray = field.FieldType.IsArray
                 });
             return props.Concat(fields).ToArray();
         }
 
-        private string GetType(Type type)
+        static readonly Type typeDecimal = typeof(decimal);
+        static bool ignoreDecimal = false;
+        private string GetType(MemberInfo member)
         {
+            Type type = member.MemberType == MemberTypes.Field
+                ? (member as FieldInfo).FieldType
+                : (member as PropertyInfo).PropertyType;
+
+            if (type == typeDecimal && !ignoreDecimal)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.Write($"Error: Member ");
+                Console.ForegroundColor = ConsoleColor.Blue;
+                Console.Write("decimal");
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($" {member.DeclaringType.FullName}.{member.Name} is not supported in javascript.");
+                Console.ResetColor();
+                Console.Write("Do you want to process ignoring JAVASCRIPT? (yes/No)N: ");
+                string confirmation = Console.ReadLine();
+                if (confirmation.ToLower().StartsWith("Y"))
+                {
+                    ignoreDecimal = true;
+                }
+                else
+                {
+                    Console.ForegroundColor = ConsoleColor.DarkYellow;
+                    Console.WriteLine("Please change Decimal to other data type.");
+                    Console.ResetColor();
+                    Environment.Exit(1);
+                }
+            }
             return type.IsArray ? type.GetElementType().Name : type.IsEnum ? type.GetEnumUnderlyingType().Name : type.Name;
         }
 

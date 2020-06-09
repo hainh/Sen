@@ -66,164 +66,146 @@
 		          "isArray": false
 		        },
 		        {
-		          "valueName": "E",
-		          "keyCode": 4,
-		          "type": "Decimal",
-		          "isArray": false
-		        },
-		        {
-		          "valueName": "F",
-		          "keyCode": 5,
-		          "type": "Double",
-		          "isArray": false
-		        },
-		        {
 		          "valueName": "G",
-		          "keyCode": 6,
+		          "keyCode": 5,
 		          "type": "Single",
 		          "isArray": false
 		        },
 		        {
 		          "valueName": "H",
-		          "keyCode": 7,
+		          "keyCode": 6,
 		          "type": "Int32",
 		          "isArray": false
 		        },
 		        {
 		          "valueName": "I",
-		          "keyCode": 8,
+		          "keyCode": 7,
 		          "type": "UInt32",
 		          "isArray": false
 		        },
 		        {
 		          "valueName": "J",
-		          "keyCode": 9,
+		          "keyCode": 8,
 		          "type": "Int64",
 		          "isArray": false
 		        },
 		        {
 		          "valueName": "K",
-		          "keyCode": 10,
+		          "keyCode": 9,
 		          "type": "UInt64",
 		          "isArray": false
 		        },
 		        {
 		          "valueName": "L",
-		          "keyCode": 11,
+		          "keyCode": 10,
 		          "type": "Int16",
 		          "isArray": false
 		        },
 		        {
 		          "valueName": "M",
-		          "keyCode": 12,
+		          "keyCode": 11,
 		          "type": "UInt16",
 		          "isArray": false
 		        },
 		        {
 		          "valueName": "N",
-		          "keyCode": 13,
+		          "keyCode": 12,
 		          "type": "String",
 		          "isArray": false
 		        },
 		        {
 		          "valueName": "O",
-		          "keyCode": 14,
+		          "keyCode": 13,
 		          "type": "Int32",
 		          "isArray": false
 		        },
 		        {
 		          "valueName": "AA",
-		          "keyCode": 15,
+		          "keyCode": 14,
 		          "type": "Boolean",
 		          "isArray": true
 		        },
 		        {
 		          "valueName": "AB",
-		          "keyCode": 16,
+		          "keyCode": 15,
 		          "type": "Byte",
 		          "isArray": true
 		        },
 		        {
 		          "valueName": "AC",
-		          "keyCode": 17,
+		          "keyCode": 16,
 		          "type": "SByte",
 		          "isArray": true
 		        },
 		        {
 		          "valueName": "AD",
-		          "keyCode": 18,
+		          "keyCode": 17,
 		          "type": "Char",
 		          "isArray": true
 		        },
 		        {
-		          "valueName": "AE",
-		          "keyCode": 19,
-		          "type": "Decimal",
-		          "isArray": true
-		        },
-		        {
 		          "valueName": "AF",
-		          "keyCode": 20,
+		          "keyCode": 18,
 		          "type": "Double",
 		          "isArray": true
 		        },
 		        {
 		          "valueName": "AG",
-		          "keyCode": 21,
+		          "keyCode": 19,
 		          "type": "Single",
 		          "isArray": true
 		        },
 		        {
 		          "valueName": "AH",
-		          "keyCode": 22,
+		          "keyCode": 20,
 		          "type": "Int32",
 		          "isArray": true
 		        },
 		        {
 		          "valueName": "AI",
-		          "keyCode": 23,
+		          "keyCode": 21,
 		          "type": "UInt32",
 		          "isArray": true
 		        },
 		        {
 		          "valueName": "AJ",
-		          "keyCode": 24,
+		          "keyCode": 22,
 		          "type": "Int64",
 		          "isArray": true
 		        },
 		        {
 		          "valueName": "AK",
-		          "keyCode": 25,
+		          "keyCode": 23,
 		          "type": "UInt64",
 		          "isArray": true
 		        },
 		        {
 		          "valueName": "AL",
-		          "keyCode": 26,
+		          "keyCode": 24,
 		          "type": "Int16",
 		          "isArray": true
 		        },
 		        {
 		          "valueName": "AM",
-		          "keyCode": 27,
+		          "keyCode": 25,
 		          "type": "UInt16",
 		          "isArray": true
 		        },
 		        {
 		          "valueName": "AN",
-		          "keyCode": 28,
+		          "keyCode": 26,
 		          "type": "String",
 		          "isArray": true
 		        },
 		        {
 		          "valueName": "MyData",
-		          "keyCode": 29,
+		          "keyCode": 27,
 		          "type": "MyData",
 		          "isArray": false
 		        },
 		        {
 		          "valueName": "MyDatas",
-		          "keyCode": 30,
+		          "keyCode": 28,
 		          "type": "MyData",
 		          "isArray": true
 		        }
@@ -262,15 +244,24 @@
 				if (type['unionCode'] >= 0) {
 					typeCodeDict[type['unionCode'] + ''] = type;
 				}
+				if (!type.values.find(value => value.type === 'Double')) {
+					type.forceFloat32 = true;
+				}
+			}
+			for (var i = types.length - 1; i >= 0; i--) {
+				type = types[i];
+				if (!type.values.find(value => value.type === 'Double' || (typeDict[value.type] && !typeDict[value.type].forceFloat32))) {
+					type.forceFloat32 = true;
+				}
 			}
 		})(MessageTypes);
 		MessageTypes.createType = function() {
 			for (var className in this.__innerTypes__) {
 				eval(`var ctor = function ${className}(){if(!new.target)return new ${className}();}`);
-				var typeData = this.__innerTypes__[className];
+				var dataType = this.__innerTypes__[className];
 				this[className] = ctor;
-				for (var i = 0; i < typeData['values'].length; i++) {
-					var {valueName, keyCode, type, isArray} = typeData['values'][i];
+				for (var i = 0; i < dataType['values'].length; i++) {
+					var {valueName, keyCode, type, isArray} = dataType['values'][i];
 					Object.defineProperty(ctor.prototype, valueName, defineGetterAndSetter(valueName, type, isArray, Sen.Logger));
 				}
 				ctor.prototype.toJSON = function() {
@@ -372,37 +363,73 @@
 			}
 		}
 		MessageTypes.createType();
-		var data = [146,44,146,2,220,0,31,195,0,0,0,161,48,203,0,0,0,0,0,0,0,0,202,0,0,0,0,0,0,0,0,0,0,192,1,192,192,192,192,192,192,192,192,192,192,192,192,192,192,147,206,0,1,226,64,165,55,56,57,49,48,208,133,145,147,206,0,1,226,64,165,55,56,57,49,48,208,133]
-		var message = {data};
+		var data = [146,44,146,2,220,0,29,195,0,0,0,192,202,0,0,0,0,0,0,0,0,0,0,192,1,192,192,192,192,192,192,192,192,192,192,192,192,192,147,206,0,1,226,64,165,55,56,57,49,48,208,133,145,147,206,0,1,226,64,165,55,56,57,49,48,208,133]
+		var message = new Uint8Array(data);
 
-		function parseData (message) {
-			var rawData = new Uint8Array(message.data);
-			var obj = MessagePack.decode(rawData);
-			var wiredData = {};
+		function parseData (buffer) {
+			var obj = MessagePack.decode(buffer);
+			var unionCode = obj[1][0];
+			var unionType = MessageTypes.__innerTypesByCode__[unionCode + ''];
+			return setValue(obj[1][1], MessageTypes[unionType.className](), MessageTypes);
+
 			function setValue(msgpackData, destObject, MessageTypes) {
 				var name = destObject.constructor.name;
-				var typeDescObj = MessageTypes.__innerTypes__[name];
-				var {values} = typeDescObj;
+				var {values} = MessageTypes.__innerTypes__[name];
 
 				for (var i = values.length - 1; i >= 0; i--) {
-					var {valueName, keyCode, type, isArray} = values[i];
+					var {valueName, keyCode, type, isArray} = values[i],
+						buffer = msgpackData[keyCode];
 					if (MessageTypes[type]) {
 						destObject[valueName] = isArray 
-							? msgpackData[keyCode].map(msgpackDataElement => setValue(msgpackDataElement, MessageTypes[type](), MessageTypes))
-							: setValue(msgpackData[keyCode], MessageTypes[type](), MessageTypes);
+							? buffer.map(msgpackDataElement => setValue(msgpackDataElement, MessageTypes[type](), MessageTypes))
+							: setValue(buffer, MessageTypes[type](), MessageTypes);
 					} else {
-						destObject[valueName] = msgpackData[keyCode];
+						destObject[valueName] = buffer;
 					}
 				}
 				return destObject;
 			}
-			wiredData.ServiceCode = obj[0];
-			var unionCode = obj[1][0];
-			var unionType = MessageTypes.__innerTypesByCode__[unionCode + ''];
-			wiredData.Data = setValue(obj[1][1], MessageTypes[unionType.className](), MessageTypes);
-			return wiredData;
 		}
 		var typedData = parseData(message);
+
+		var serializer = {
+			isConnected: true,
+			socket: {
+				send(data) {
+					console.debug(data);
+				}
+			},
+			serialize: function serialize(message) {
+				var dataType = message.constructor.name;
+				var typeDesc = MessageTypes.__innerTypes__[dataType];
+				if (!typeDesc || typeDesc.unionCode < 0) {
+					throw `Type MessageTypes.${dataType} is not supported`;
+				}
+				var msgpackData = [0, [typeDesc.unionCode, []]];
+				getValues(message, msgpackData[1][1], MessageTypes);
+				return MessagePack.encode(msgpackData);
+
+				function getValues(message, msgpackData, MessageTypes) {
+					var {values} = MessageTypes.__innerTypes__[message.constructor.name];
+					for (var i = values.length - 1; i >= 0; i--) {
+						var {valueName, keyCode, type, isArray} = values[i];
+						var value = message[valueName];
+						if (MessageTypes[type]) {
+							msgpackData[keyCode] = isArray 
+								? value.map(message => getValues(message, [], MessageTypes))
+								: getValues(value, [], MessageTypes);
+						} else {
+							msgpackData[keyCode] = value;
+						}
+					}
+					return msgpackData;
+				}
+			}
+		}
+		var arr = serializer.serialize(typedData);
+		var typedData2 = parseData(arr);
+		console.debug(data, arr);
+		console.log(JSON.stringify(typedData, null, '\t'), JSON.stringify(typedData2, null, '\t'))
 	</script>
 </body>
 </html>

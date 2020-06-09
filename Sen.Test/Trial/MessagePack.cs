@@ -38,6 +38,8 @@ namespace Trial
 
             var sd3 = MessagePackSerializer.Deserialize<WiredData<IMyUnion>>(data4);
 
+            WiredData<IMyUnion> largeData = MessagePackSerializer.Deserialize<WiredData<IMyUnion>>(new byte[] { 146, 0, 146, 2, 220, 0, 29, 195, 0, 0, 0, 192, 203, 63, 241, 247, 206, 217, 22, 135, 43, 0, 0, 0, 0, 0, 0, 192, 1, 192, 192, 192, 192, 192, 192, 192, 192, 192, 192, 192, 192, 192, 147, 206, 0, 1, 226, 64, 165, 55, 56, 57, 49, 48, 208, 133, 145, 147, 206, 0, 1, 226, 64, 165, 55, 56, 57, 49, 48, 208, 133 });
+
         }
     }
 
@@ -72,60 +74,53 @@ namespace Trial
         public sbyte C;
         [Key(3)]
         public char D;
-        [Key(4)]
-        public decimal E;
         [Key(5)]
-        public double F;
-        [Key(6)]
         public float G;
-        [Key(7)]
+        [Key(6)]
         public int H;
-        [Key(8)]
+        [Key(7)]
         public uint I;
-        [Key(9)]
+        [Key(8)]
         public long J;
-        [Key(10)]
+        [Key(9)]
         public ulong K;
-        [Key(11)]
+        [Key(10)]
         public short L;
-        [Key(12)]
+        [Key(11)]
         public ushort M;
-        [Key(13)]
+        [Key(12)]
         public string N;
-        [Key(14)]
+        [Key(13)]
         public MyEnum O;
-
-        [Key(15)]
+        [Key(14)]
         public bool[] AA;
-        [Key(16)]
+        [Key(15)]
         public byte[] AB;
-        [Key(17)]
+        [Key(16)]
         public sbyte[] AC;
-        [Key(18)]
+        [Key(17)]
         public char[] AD;
-        [Key(19)]
-        public decimal[] AE;
-        [Key(20)]
+        [Key(18)]
         public double[] AF;
-        [Key(21)]
+        [Key(19)]
         public float[] AG;
-        [Key(22)]
+        [Key(20)]
         public int[] AH;
-        [Key(23)]
+        [Key(21)]
         public uint[] AI;
-        [Key(24)]
+        [Key(22)]
         public long[] AJ;
-        [Key(25)]
+        [Key(23)]
         public ulong[] AK;
-        [Key(26)]
+        [Key(24)]
         public short[] AL;
-        [Key(27)]
+        [Key(25)]
         public ushort[] AM;
-        [Key(28)]
+        [Key(26)]
         public string[] AN;
-        [Key(29)]
+        [Key(27)]
         public MyData MyData;
-        [Key(30)]
+        [Key(28)]
         public MyData[] MyDatas;
     }
 
