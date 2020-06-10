@@ -9,25 +9,35 @@ namespace Benchmarking
     public class MessagePackBenchmark
     {
         MyData myData;
-        private byte[] data2;
+        private byte[] mspByteArray;
         private MyServiceData<IMyUnion> serviceData;
-        private byte[] sd3;
+        private byte[] protoBufArray;
+
 
         [GlobalSetup]
         public void Setup()
         {
-            myData = new MyData { A = 123456, B = MyEnum.Ccc, C = -123, D = 0, E = true, F = "F" };
-            data2 = MessagePackSerializer.Serialize(myData);
+            myData = new MyData 
+            {
+                Aiiiii = 123456, BEnnnnnn = MyEnum.Ccc, Csssssssss = -123, Dlllllll = 0, Eggggg = true, Fgggg = "Fsdkfhkj",
+                H3333 = 212, LAffffff = new long[] {232, 1298723, 8763876837},
+                SomeData = new InnerData()
+                {
+                    Bbbbbbb = new bool[] { true, false, false, true, false, false, false } ,
+                    Ffffffff = 3.2938493f,
+                    SSSSss = new string[] {"sdkjhe", "sdkfjheu"}
+                }
+            };
 
             serviceData = new MyServiceData<IMyUnion>()
             {
                 ServiceCode = 5,
-                MyData = new MyData2 { A = 12312, MyEnum = MyEnum.Bbb, E = true, F = "F" }
+                MyData = myData
             };
 
-            sd3 = MessagePackSerializer.Serialize(serviceData);
+            mspByteArray = MessagePackSerializer.Serialize(myData);
 
-            Console.WriteLine("Bare class {0} bytes, Union class {1} bytes", data2.Length, sd3.Length);
+            Console.WriteLine("Bare class {0} bytes, Union class {1} bytes", mspByteArray.Length, protoBufArray.Length);
         }
 
         [Benchmark]
@@ -45,13 +55,13 @@ namespace Benchmarking
         [Benchmark]
         public void DeserializeBareClass()
         {
-            MessagePackSerializer.Deserialize<MyData>(data2);
+            MessagePackSerializer.Deserialize<MyData>(mspByteArray);
         }
 
         [Benchmark]
         public void DeserializeUnionClass()
         {
-            MessagePackSerializer.Deserialize<MyServiceData<IMyUnion>>(sd3);
+            MessagePackSerializer.Deserialize<MyServiceData<IMyUnion>>(protoBufArray);
         }
     }
 
@@ -65,48 +75,54 @@ namespace Benchmarking
         public int ServiceCode { get; set; }
     }
 
-    [Union(10000, typeof(MyData2))]
+    [Union(0, typeof(MyData))]
     public interface IMyUnion
     {
 
     }
 
     [MessagePackObject]
-    public class MyData
+    public class MyData : IMyUnion
     {
         [Key(0)]
-        public int A { get; set; }
+        public int Aiiiii { get; set; }
 
         [Key(1)]
-        public MyEnum B { get; set; }
+        public MyEnum BEnnnnnn { get; set; }
 
         [Key(2)]
-        public short C { get; set; }
+        public short Csssssssss { get; set; }
 
         [Key(3)]
-        public long D { get; set; }
+        public long Dlllllll { get; set; }
 
         [Key(4)]
-        public bool E { get; set; }
+        public bool Eggggg { get; set; }
 
         [Key(5)]
-        public string F { get; set; }
+        public string Fgggg { get; set; }
+
+        [Key(6)]
+        public byte H3333 { get; set; }
+
+        [Key(7)]
+        public long[] LAffffff { get; set; }
+
+        [Key(8)]
+        public InnerData SomeData { get; set; }
     }
 
     [MessagePackObject]
-    public class MyData2 : IMyUnion
+    public class InnerData
     {
         [Key(0)]
-        public long A { get; set; }
+        public string[] SSSSss { get; set; }
 
         [Key(1)]
-        public MyEnum MyEnum { get; set; }
+        public float Ffffffff { get; set; }
 
         [Key(2)]
-        public string F { get; set; }
-
-        [Key(3)]
-        public bool E { get; set; }
+        public bool[] Bbbbbbb { get; set; }
     }
 
     public enum MyEnum

@@ -7,6 +7,7 @@
 
   <ItemGroup>
     <PackageReference Include="BenchmarkDotNet" Version="0.12.1" />
+    <PackageReference Include="Google.Protobuf" Version="3.12.3" />
     <PackageReference Include="MessagePack" Version="2.1.115" />
   </ItemGroup>
 

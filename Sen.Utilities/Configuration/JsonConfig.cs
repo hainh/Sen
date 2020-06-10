@@ -110,7 +110,7 @@ namespace Sen.Utilities.Configuration
 
                             if (value is Unassigned)
                             {
-                                throw new InvalidValueException($"Type ${propType.ToString()} of property ${type.Name}.${prop.Name} is not supported");
+                                throw new InvalidValueException($"Type ${propType} of property ${type.Name}.${prop.Name} is not supported");
                             }
                             prop.SetValue(this, value);
                         }
@@ -303,7 +303,7 @@ namespace Sen.Utilities.Configuration
 
         public override int GetHashCode()
         {
-            return base.GetHashCode();
+            return HashCode.Combine(base.GetHashCode(), thisOnLoadedCalled);
         }
     }
 

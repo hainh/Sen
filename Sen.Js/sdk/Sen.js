@@ -1,9 +1,9 @@
 this.Sen = {};
 this.initSen = function(throwOnDataError) {
 	Sen.throwOnDataError = throwOnDataError;
-	internalInitSen(Sen);
+	__internalInitSen(Sen);
 }
-function internalInitSen(Sen){
+function __internalInitSen(Sen){
 
 	/* Simple JavaScript Inheritance
 	 * By John Resig http://ejohn.org/
@@ -259,7 +259,8 @@ function internalInitSen(Sen){
 			}
 			function buildSetter(valueName, type, isArray) {
 				switch (type) {
-					case 'Boolean': 
+					case 'Boolean':
+						__rawData = false;
 						return `function setter (val) { __rawData = ${isArray ? 'val && val.map(v => !!v)' : '!!val'};};`;
 					case 'Byte':
 					case 'SByte':
@@ -273,6 +274,7 @@ function internalInitSen(Sen){
 					case 'Decimal':
 					case 'Double':
 					case 'Single':
+						__rawData = 0;
 						return `function setter (val){
 							${buildValidator(valueName, type, isArray)}
 							__rawData = ${isArray ? 'val && val.map(v => +v)' : '+val'};
