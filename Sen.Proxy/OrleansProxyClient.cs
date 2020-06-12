@@ -1,6 +1,10 @@
 ﻿using Microsoft.Extensions.Hosting;
 using NLog.Extensions.Logging;
 using Orleans;
+using Orleans.Concurrency;
+using Orleans.Configuration;
+using Orleans.Hosting;
+using Orleans.Streams;
 using Sen.Game;
 using Sen.Interfaces;
 using System;
@@ -25,6 +29,7 @@ namespace Sen.Proxy
                 // Configure a client and connect to the service.
                 OrleansClusterClient = new ClientBuilder()
                     .UseLocalhostClustering(serviceId: "SenServer", clusterId: "dev")
+                    .AddSimpleMessageStreamProvider("SMSProvider")
                     .ConfigureLogging(logging => logging.AddNLog())
                     .Build();
 
@@ -51,6 +56,11 @@ namespace Sen.Proxy
             Console.WriteLine(msg);
             await Task.Delay(TimeSpan.FromSeconds(10));
             return true;
+        }
+
+        public IAsyncStream<Immutable<byte[]>> CreateStream(IPlayer player)
+        {
+
         }
     }
 }

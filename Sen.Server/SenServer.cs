@@ -23,11 +23,19 @@ namespace Sen.Server
                     {
                         var isDevelopment = context.HostingEnvironment.IsDevelopment();
                         siloBuilder
-                            .UseLocalhostClustering(serviceId: "SenServer", clusterId: "dev")
                             .Configure<ConnectionOptions>(options =>
                             {
                                 options.ProtocolVersion = Orleans.Runtime.Messaging.NetworkProtocolVersion.Version2;
-                            });
+                            })
+                            .AddSimpleMessageStreamProvider("SMSProvider");
+
+                        if (isDevelopment)
+                        {
+                            siloBuilder.UseLocalhostClustering(serviceId: "SenServer", clusterId: "dev");
+                        }
+                        else
+                        {
+                        }
                     })
                     .ConfigureLogging(logging => logging.AddNLog())
                     .Build();

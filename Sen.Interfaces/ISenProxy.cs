@@ -1,4 +1,6 @@
 ﻿using Microsoft.Extensions.Hosting;
+using Orleans.Concurrency;
+using Orleans.Streams;
 using Sen.Game;
 
 namespace Sen.Interfaces
@@ -11,5 +13,6 @@ namespace Sen.Interfaces
     public interface IPlayerFactory
     {
         IPlayer CreatePlayer(string playerId);
+        IAsyncStream<Immutable<byte[]>> CreateStream(IPlayer player);
     }
 }
