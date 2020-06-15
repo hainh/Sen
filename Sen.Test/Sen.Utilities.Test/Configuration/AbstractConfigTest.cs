@@ -17,8 +17,8 @@ namespace Sen.Utilities.Configuration.Tests
             Assert.Equal(0, a1.B.B);
             a1.Load(JsonDocument.Parse(@"{""A"": 33, ""B"": {""B"": 5}, ""D"": ""1,2,Friday,8""}").RootElement);
             Assert.Equal(33, a1.A);
-            Assert.Null(a1.Parent);
-            Assert.Equal(a1, a1.B.Parent);
+            Assert.Null(a1.GetParentConfig());
+            Assert.Equal(a1, a1.B.GetParentConfig());
         }
     }
 
