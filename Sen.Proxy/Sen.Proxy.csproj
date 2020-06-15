@@ -9,6 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.Orleans.OrleansProviders" Version="3.2.0" />
     <PackageReference Include="NLog" Version="4.7.0" />
     <PackageReference Include="NLog.Extensions.Logging" Version="1.6.2" />
     <PackageReference Include="NLog.Schema" Version="4.7.0" />
@@ -22,7 +23,6 @@
     <ProjectReference Include="..\..\DotNetty\src\DotNetty.Handlers\DotNetty.Handlers.csproj" />
     <ProjectReference Include="..\..\DotNetty\src\DotNetty.Transport.Libuv\DotNetty.Transport.Libuv.csproj" />
     <ProjectReference Include="..\..\DotNetty\src\DotNetty.Transport\DotNetty.Transport.csproj" />
-    <ProjectReference Include="..\..\Orleans\src\Orleans.Core\Orleans.Core.csproj" />
     <ProjectReference Include="..\Sen.Interfaces\Sen.Interfaces.csproj" />
   </ItemGroup>
 

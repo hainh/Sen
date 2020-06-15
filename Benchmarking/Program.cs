@@ -8,7 +8,7 @@ namespace Benchmarking
         static void Main(string[] args)
         {
             Console.WriteLine("Start Benchmarking!");
-            var summary = BenchmarkRunner.Run<DynamicMethodSelectorBenchmark>();
+            var summary = BenchmarkRunner.Run<MessagePackBenchmark>();
             Console.WriteLine(summary);
         }
     }

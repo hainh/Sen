@@ -6,8 +6,6 @@ using DotNetty.Transport.Channels;
 using DotNetty.Transport.Libuv;
 using Microsoft.Extensions.Logging;
 using NLog.Extensions.Logging;
-using Orleans;
-using Sen.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,7 +13,6 @@ using System.Net;
 using System.Runtime;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography.X509Certificates;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace Sen.Proxy
@@ -40,7 +37,7 @@ namespace Sen.Proxy
             DotNetty.Common.Internal.Logging.InternalLoggerFactory.DefaultFactory = LoggerFactory;
         }
 
-        public IServiceProvider Services => throw new NotImplementedException();
+        public IServiceProvider Services => null;
 
         private IPlayerFactory grainFactory;
 
@@ -57,7 +54,7 @@ namespace Sen.Proxy
             logger.LogError(e.ExceptionObject as Exception, "Unhandled exception caught");
         }
 
-        public async Task StartAsync(CancellationToken cancellationToken = default)
+        public async Task StartAsync()
         {
             ResourceLeakDetector.Level = ResourceLeakDetector.DetectionLevel.Disabled;
             Console.WriteLine($"Resource Leak Detector Level : {ResourceLeakDetector.Level}");
@@ -188,7 +185,7 @@ namespace Sen.Proxy
             return ProxyConfig.Listeners.FirstOrDefault(l => l.Port == port);
         }
 
-        public async Task StopAsync(CancellationToken cancellationToken = default)
+        public async Task StopAsync()
         {
             if (channels.Count > 0)
             {

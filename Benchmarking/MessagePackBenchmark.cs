@@ -1,5 +1,6 @@
 ﻿using BenchmarkDotNet.Attributes;
 using MessagePack;
+using MessagePack.Resolvers;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -9,10 +10,12 @@ namespace Benchmarking
     public class MessagePackBenchmark
     {
         MyData myData;
-        private byte[] mspByteArray;
-        private MyServiceData<IMyUnion> serviceData;
-        private byte[] protoBufArray;
+        private byte[] bareMsgData;
+        private IMyUnion serviceData;
+        private byte[] wrappedData;
 
+        Type MyDataType = typeof(MyData);
+        Type UnionType = typeof(IMyUnion);
 
         [GlobalSetup]
         public void Setup()
@@ -29,15 +32,12 @@ namespace Benchmarking
                 }
             };
 
-            serviceData = new MyServiceData<IMyUnion>()
-            {
-                ServiceCode = 5,
-                MyData = myData
-            };
+            serviceData = myData;
 
-            mspByteArray = MessagePackSerializer.Serialize(myData);
+            bareMsgData = MessagePackSerializer.Serialize(myData);
+            wrappedData = MessagePackSerializer.Serialize(serviceData);
 
-            Console.WriteLine("Bare class {0} bytes, Union class {1} bytes", mspByteArray.Length, protoBufArray.Length);
+            //Console.WriteLine("Bare class {0} bytes, Union class {1} bytes", mspByteArray.Length, protoBufArray.Length);
         }
 
         [Benchmark]
@@ -53,15 +53,39 @@ namespace Benchmarking
         }
 
         [Benchmark]
+        public void SerializeBareClassByType()
+        {
+            MessagePackSerializer.Serialize(typeof(MyData), myData);
+        }
+
+        [Benchmark]
+        public void SerializeUnionClassByType()
+        {
+            MessagePackSerializer.Serialize(typeof(IMyUnion), serviceData);
+        }
+
+        [Benchmark]
         public void DeserializeBareClass()
         {
-            MessagePackSerializer.Deserialize<MyData>(mspByteArray);
+            MessagePackSerializer.Deserialize<MyData>(bareMsgData);
         }
 
         [Benchmark]
         public void DeserializeUnionClass()
         {
-            MessagePackSerializer.Deserialize<MyServiceData<IMyUnion>>(protoBufArray);
+            MessagePackSerializer.Deserialize<IMyUnion>(wrappedData);
+        }
+
+        [Benchmark]
+        public void DeserializeBareClassByType()
+        {
+            MessagePackSerializer.Deserialize(typeof(MyData), bareMsgData);
+        }
+
+        [Benchmark]
+        public void DeserializeUnionClassByType()
+        {
+            MessagePackSerializer.Deserialize(typeof(IMyUnion), wrappedData);
         }
     }
 

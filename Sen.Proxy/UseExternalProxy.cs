@@ -1,6 +1,4 @@
-﻿
-
-namespace Sen.Proxy
+﻿namespace Sen.Proxy
 {
     public enum UseExternalProxy
     {

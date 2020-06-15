@@ -7,6 +7,7 @@ namespace Sen.Game
 {
     public delegate void RoomChanged(IRoom room);
 
+    /// <inheritdoc/>
     public abstract class Lobby : Room, ILobby
     {
         public event RoomChanged RoomAdded;
@@ -15,13 +16,13 @@ namespace Sen.Game
 
         protected IList<IRoom> _rooms;
 
-        public ValueTask<IList<IRoom>> Rooms => new ValueTask<IList<IRoom>>(_rooms);
+        public ValueTask<IList<IRoom>> GetRooms() => new ValueTask<IList<IRoom>>(_rooms);
 
         public async ValueTask<IRoom> FindRoom(string roomName)
         {
             foreach (IRoom room in _rooms)
             {
-                if (await room.RoomName == roomName)
+                if (await room.GetRoomName() == roomName)
                 {
                     return room;
                 }

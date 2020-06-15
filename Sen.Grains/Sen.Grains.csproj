@@ -13,7 +13,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Orleans\src\Orleans.Core.Abstractions\Orleans.Core.Abstractions.csproj" />
     <ProjectReference Include="..\Sen.Interfaces\Sen.Interfaces.csproj" />
     <ProjectReference Include="..\Sen.Utilities\Sen.Utilities.csproj" />
   </ItemGroup>

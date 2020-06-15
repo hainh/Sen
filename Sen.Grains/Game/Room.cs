@@ -12,6 +12,13 @@ namespace Sen.Game
 {
     public delegate void PlayerChange(IPlayer player);
 
+    /// <summary>
+    /// Base class for game rooms.
+    /// <para>
+    /// Subclass will overload <see cref="HandleMessage(IUnionData, IPlayer)"/> method to
+    /// handle each message type from player
+    /// </para>
+    /// </summary>
     public abstract class Room : Grain, IRoom
     {
         protected long _matchId;
@@ -29,21 +36,21 @@ namespace Sen.Game
 
         public event PlayerChange PlayerLeaving;
 
-        public ValueTask<long> MatchId => new ValueTask<long>(_matchId);
+        public ValueTask<long> GetMatchId() => new ValueTask<long>(_matchId);
 
-        public ValueTask<string> RoomName => new ValueTask<string>(_roomName);
+        public ValueTask<string> GetRoomName() => new ValueTask<string>(_roomName);
 
-        public ValueTask<string> Password => new ValueTask<string>(_password);
+        public ValueTask<string> GetPassword() => new ValueTask<string>(_password);
 
-        public ValueTask<int> PlayerLimit => new ValueTask<int>(_playerLimit);
+        public ValueTask<int> GetPlayerLimit() => new ValueTask<int>(_playerLimit);
 
-        public ValueTask<ILobby> Parent => new ValueTask<ILobby>(_parent);
+        public ValueTask<ILobby> GetParent() => new ValueTask<ILobby>(_parent);
 
-        public ValueTask<bool> IsLobby => new ValueTask<bool>(false);
+        public ValueTask<bool> IsLobby() => new ValueTask<bool>(false);
 
-        public ValueTask<bool> IsFull => new ValueTask<bool>(_players.Count >= _playerLimit);
+        public ValueTask<bool> IsFull() => new ValueTask<bool>(_players.Count >= _playerLimit);
 
-        public ValueTask<ICollection<IPlayer>> Players => new ValueTask<ICollection<IPlayer>>(_players.Values);
+        public ValueTask<ICollection<IPlayer>> GetPlayers() => new ValueTask<ICollection<IPlayer>>(_players.Values);
 
         /// <summary>
         /// Handle a message object. Inherited class create its own overloaded version to
@@ -67,10 +74,10 @@ namespace Sen.Game
 
         public async ValueTask<bool> JoinRoom(IPlayer player)
         {
-            if (!IsFull.Result)
+            if (!IsFull().Result)
             {
-                string playerName = await player.Name;
-                if (!_players.ContainsKey(await player.Name))
+                string playerName = await player.GetName();
+                if (!_players.ContainsKey(await player.GetName()))
                 {
                     OnPlayerJoining(player);
                     _players.Add(playerName, player);
@@ -84,7 +91,7 @@ namespace Sen.Game
 
         protected virtual async ValueTask<bool> RemovePlayer(IPlayer player)
         {
-            return _players.Remove(await player.Name);
+            return _players.Remove(await player.GetName());
         }
 
         public ValueTask SetParent(ILobby room)

@@ -1,20 +1,18 @@
-﻿using System;
-using System.Diagnostics;
-using System.Text;
-using System.Threading.Tasks;
-using DotNetty.Buffers;
+﻿using DotNetty.Buffers;
 using DotNetty.Codecs.Http;
 using DotNetty.Codecs.Http.WebSockets;
 using DotNetty.Common.Utilities;
 using DotNetty.Transport.Channels;
-
-using static DotNetty.Codecs.Http.HttpVersion;
-using static DotNetty.Codecs.Http.HttpResponseStatus;
-using Sen.Interfaces;
-using System.Net;
+using Microsoft.Extensions.Logging;
 using Orleans.Concurrency;
 using Sen.Game;
-using Microsoft.Extensions.Logging;
+using System;
+using System.Diagnostics;
+using System.Net;
+using System.Text;
+using System.Threading.Tasks;
+using static DotNetty.Codecs.Http.HttpResponseStatus;
+using static DotNetty.Codecs.Http.HttpVersion;
 
 namespace Sen.Proxy
 {
@@ -47,7 +45,7 @@ namespace Sen.Proxy
 
         public override void ChannelReadComplete(IChannelHandlerContext context) => context.Flush();
 
-        void HandleHttpRequest(IChannelHandlerContext ctx, IFullHttpRequest req)
+        async void HandleHttpRequest(IChannelHandlerContext ctx, IFullHttpRequest req)
         {
             // Handle a bad request.
             if (!req.Result.IsSuccess)
@@ -69,22 +67,35 @@ namespace Sen.Proxy
             var wsFactory = new WebSocketServerHandshakerFactory(
                 GetWebSocketLocation(req), null, true, 5 * 1024 * 1024);
             _handshaker = wsFactory.NewHandshaker(req);
-            if (_handshaker == null)
+            try
             {
-                WebSocketServerHandshakerFactory.SendUnsupportedVersionResponse(ctx.Channel);
-            }
-            else
-            {
-                IPEndPoint remoteIpEndPoint = ctx.Channel.RemoteAddress as IPEndPoint;
-                if (_useExternalProxy != UseExternalProxy.None)
+                if (_handshaker == null)
                 {
-                    remoteIpEndPoint = GetRealRemoteEndPoint(req, remoteIpEndPoint);
+                    await WebSocketServerHandshakerFactory.SendUnsupportedVersionResponse(ctx.Channel);
                 }
-                //Create the grain to communicate with the server(silo)
-                _proxyConnection = _playerFactory.CreatePlayer(uriComponent[1]);
-                _proxyConnection.InitConnection(ctx.Channel.LocalAddress, remoteIpEndPoint, uriComponent[2]);
+                else
+                {
+                    IPEndPoint remoteIpEndPoint = ctx.Channel.RemoteAddress as IPEndPoint;
+                    if (_useExternalProxy != UseExternalProxy.None)
+                    {
+                        remoteIpEndPoint = GetRealRemoteEndPoint(req, remoteIpEndPoint);
+                    }
+                    //Create the grain to communicate with the server(silo)
+                    _proxyConnection = _playerFactory.CreatePlayer(uriComponent[1]);
+                    bool proxySuccess = await _proxyConnection.InitConnection(ctx.Channel.LocalAddress, remoteIpEndPoint, uriComponent[2]).AsTask();
+                    if (proxySuccess)
+                    {
+                        await _handshaker.HandshakeAsync(ctx.Channel, req);
+                    }
+                    else
+                    {
 
-                _handshaker.HandshakeAsync(ctx.Channel, req);
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                throw;
             }
         }
 

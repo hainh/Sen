@@ -1,13 +1,15 @@
-﻿using Microsoft.Extensions.Hosting;
-using Orleans.Concurrency;
+﻿using Orleans.Concurrency;
 using Orleans.Streams;
 using Sen.Game;
+using System.Threading.Tasks;
 
-namespace Sen.Interfaces
+namespace Sen.Proxy
 {
-    public interface ISenProxy : IHost
+    public interface ISenProxy
     {
         void SetGrainFactory(IPlayerFactory grainFactory);
+        Task StartAsync();
+        Task StopAsync();
     }
 
     public interface IPlayerFactory

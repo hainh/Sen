@@ -10,11 +10,10 @@ using System.Runtime;
 
 namespace Sen.Server
 {
-    class SenServer
+    public class SenServer
     {
-        public static async Task<int> Main(string[] args)
+        public static async Task<int> Run(string[] args)
         {
-            Console.Title = "Sen Server";
             try
             {
                 var host = new HostBuilder()
@@ -35,6 +34,7 @@ namespace Sen.Server
                         }
                         else
                         {
+                            siloBuilder.UseLocalhostClustering(serviceId: "SenServer", clusterId: "dev");
                         }
                     })
                     .ConfigureLogging(logging => logging.AddNLog())

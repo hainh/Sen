@@ -5,7 +5,8 @@ namespace Sen.Game
 {
     public interface ILobby: IRoom
     {
-        ValueTask<IList<IRoom>> Rooms { get; }
+        //ValueTask<IList<IRoom>> Rooms { get; }
+        ValueTask<IList<IRoom>> GetRooms();
 
         ValueTask<IRoom> FindRoom(string roomName);
 

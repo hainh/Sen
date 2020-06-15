@@ -10,16 +10,16 @@ namespace Sen.Game
 {
     public interface IRoom
     {
-        ValueTask<long> MatchId { get; }
-        ValueTask<string> RoomName { get; }
-        ValueTask<string> Password { get; }
-        ValueTask<int> PlayerLimit { get; }
-        ValueTask<bool> IsFull { get; }
+        ValueTask<long> GetMatchId();
+        ValueTask<string> GetRoomName();
+        ValueTask<string> GetPassword();
+        ValueTask<int> GetPlayerLimit();
+        ValueTask<bool> IsFull();
 
-        ValueTask<ILobby> Parent { get; }
-        ValueTask<bool> IsLobby { get; }
+        ValueTask<ILobby> GetParent();
+        ValueTask<bool> IsLobby();
 
-        ValueTask<ICollection<IPlayer>> Players { get; }
+        ValueTask<ICollection<IPlayer>> GetPlayers();
 
         ValueTask SetParent(ILobby room);
 

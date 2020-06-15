@@ -1,11 +1,6 @@
-﻿using Orleans;
-using Orleans.Concurrency;
+﻿using Orleans.Concurrency;
 using Sen.DataModel;
-using Sen.Interfaces;
-using System;
-using System.Collections.Generic;
 using System.Net;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace Sen.Game
@@ -15,11 +10,12 @@ namespace Sen.Game
         /// <summary>
         /// Get Player's ID (name)
         /// </summary>
-        ValueTask<string> Name { get; }
+        ValueTask<string> GetName();
         /// <summary>
         /// Get room grain id
         /// </summary>
-        ValueTask<IRoom> Room { get; }
+        //ValueTask<IRoom> Room { get; }
+        ValueTask<IRoom> GetRoom();
         /// <summary>
         /// Set Room this player is living
         /// </summary>
@@ -28,7 +24,8 @@ namespace Sen.Game
         /// <summary>
         /// Is this player disconnected and became a bot
         /// </summary>
-        ValueTask<bool> IsBot { get; }
+        //ValueTask<bool> IsBot { get; }
+        ValueTask<bool> IsBot();
         /// <summary>
         /// Start the connection
         /// </summary>

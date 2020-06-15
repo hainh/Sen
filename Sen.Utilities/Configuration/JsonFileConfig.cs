@@ -12,10 +12,10 @@ namespace Sen.Utilities.Configuration
         {
             get
             {
-                string codeBase = Assembly.GetExecutingAssembly().CodeBase;
-                UriBuilder uri = new UriBuilder(codeBase);
+                string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+                UriBuilder uri = new UriBuilder(baseDir);
                 string path = Uri.UnescapeDataString(uri.Path);
-                return Path.GetFullPath(path + "\\..\\Config\\");
+                return Path.GetFullPath(path + "\\Config\\");
             }
         }
 
