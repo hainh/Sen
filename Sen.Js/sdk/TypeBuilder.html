@@ -5,10 +5,29 @@
 	<title>Document</title>
 </head>
 <body>
+	<script src="MessageTypes.js"></script>
 	<script src="msgpack.js"></script>
 	<script src="Sen.js"></script>
 	<script>
 		this.initSen();
+		var client = new Sen.Client();
+		client.handleMessage('MyData', function(myData) {
+			console.log(JSON.stringify(myData));
+		})
+		client.connect('ws://localhost:8080/ws');
+		console.time('connect')
+		client.onStatusChanged = function(statusCode) {
+			switch (statusCode) {
+				case Sen.Status.CONNECTED:
+					console.timeEnd('connect')
+					var myData = MessageTypes.MyData();
+					myData.A = 32;
+					myData.B = "d";
+					myData.C = 99;
+					this.send(myData);
+					break;
+			}
+		}
 	</script>
 	<script>
 	</script>

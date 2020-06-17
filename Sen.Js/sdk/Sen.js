@@ -1,5 +1,8 @@
 this.Sen = {};
 this.initSen = function(throwOnDataError) {
+	if (typeof MessageTypes === 'undefined') {
+		throw 'MessageTypes is missing. Generate one in Server project.'
+	}
 	Sen.throwOnDataError = throwOnDataError;
 	__internalInitSen(Sen);
 }
@@ -19,54 +22,61 @@ function __internalInitSen(Sen){
 	  // Create a new Class that inherits from this class
 	  Class.extend = function(prop) {
 		var _super = this.prototype;
-	   
+		try {
+			var newClassName = prop.$className.split(/\W/)[0];
+		} catch {
+			throw 'Extend class must have "$className" property.';
+		}
+		delete prop.$className;
+
 		// Instantiate a base class (but only create the instance,
 		// don't run the init constructor)
 		initializing = true;
 		var prototype = new this();
 		initializing = false;
-	   
+
 		// Copy the properties over onto the new prototype
 		for (var name in prop) {
 		  // Check if we're overwriting an existing function
 		  prototype[name] = typeof prop[name] == "function" &&
 			typeof _super[name] == "function" && fnTest.test(prop[name]) ?
 			(function(name, fn){
-			  return function() {
-				var tmp = this._super;
-			   
-				// Add a new ._super() method that is the same method
-				// but on the super-class
-				this._super = _super[name];
-			   
-				// The method only need to be bound temporarily, so we
-				// remove it when we're done executing
-				var ret = fn.apply(this, arguments);        
-				this._super = tmp;
-			   
-				return ret;
-			  };
+				return function() {
+					var tmp = this._super;
+
+					// Add a new ._super() method that is the same method
+					// but on the super-class
+					this._super = _super[name];
+
+					// The method only need to be bound temporarily, so we
+					// remove it when we're done executing
+					var ret = fn.apply(this, arguments);        
+					this._super = tmp;
+
+					return ret;
+				};
 			})(name, prop[name]) :
 			prop[name];
 		}
-	   
-		// The dummy class constructor
-		function Class() {
-		  // All construction is actually done in the init method
-		  if ( !initializing && this.init )
-			this.init.apply(this, arguments);
-		}
-	   
+		
+		var e = `// The dummy class constructor
+		var ctor = function ${newClassName}() {
+			// All construction is actually done in the init method
+			if ( !initializing && this.init )
+				this.init.apply(this, arguments);
+		}`;
+		eval(e);
+
 		// Populate our constructed prototype object
-		Class.prototype = prototype;
-	   
+		ctor.prototype = prototype;
+
 		// Enforce the constructor to be what we expect
-		Class.prototype.constructor = Class;
-	 
+		ctor.prototype.constructor = ctor;
+
 		// And make this class extendable
-		Class.extend = arguments.callee;
-	   
-		return Class;
+		ctor.extend = arguments.callee;
+
+		return ctor;
 	  };
 	})();
 	
@@ -104,10 +114,10 @@ function __internalInitSen(Sen){
 		/**
 		* Peer to connect to server.
 		* Set or override "onStatusChanged(statusCode)" to handle status changed event.
-		* Set or override "onEvent(data, encrypted)" to handle events.
-		* Set or override "onResponse(data, encrypted)" to handle responses.
+		* Call handleMessage(messageType, handler) to register message handler.
 		*/
 		Sen.Client = Class.extend({
+			$className: 'Client',
 			init: function () {
 				var this_ = this;
 				this_.isConnecting = 0;
@@ -127,21 +137,22 @@ function __internalInitSen(Sen){
 				var socket = this_.socket = new WebSocket(uri);
 				socket.binaryType = "arraybuffer";
 
-				socket.onopen = (function(ev) {
+				socket.onopen = (function onopen(ev, ex) {
+					Sen.Logger.debug('Connected', ev, ex);
 					this.isConnected = 1;
 					this.isConnecting = 0;
 					this.onStatusChanged(Status.CONNECTED);
 				}).bind(this);
 
-				socket.onclose = (function (ev) {
-					console.log(ev);
+				socket.onclose = (function onclose(ev) {
+					Sen.Logger.debug('Disconnected with code', ev.code, ev);
 					this.onStatusChanged(Status.DISCONNECTED);
 					this.isConnected = 0;
 					this.isConnecting = 0;
 				}).bind(this);
 
-				socket.onerror = function(ev) {
-					console.log(ev, ev.code);
+				socket.onerror = function onerror(ev) {
+					Sen.Logger.debug('WebSocket Error', ev);
 				};
 
 				socket.onmessage = this.__onMessage.bind(this);
@@ -156,7 +167,9 @@ function __internalInitSen(Sen){
 			send: function(message) {
 				if (this.isConnected) {
 					var buffer = serialize(message);
-					Sen.Logger.debug('Sending', message.constructor.name, JSON.stringify(message, null, '\t'));
+					if (Sen.Logger.enabledFor(SLogger.DEBUG)) {
+						Sen.Logger.debug('Sending message type:', message.constructor.name, message.toString());
+					}
 					this.socket.send(buffer);
 				} else {
 					Sen.Logger.debug('Cannot send data. Connection closed.');
@@ -169,7 +182,9 @@ function __internalInitSen(Sen){
 				var buffer = new Uint8Array(wsMessage.data);
 				var message = deserialize(buffer);
 				var handler = this.handlers[message.constructor.name];
-				console.log('Incoming message', message.constructor.name, handler ? '' : 'handler missing', JSON.stringify(message, null, '\t'));
+				if (Sen.Logger.enabledFor(SLogger.DEBUG)) {
+					Sen.Logger.debug('Incoming message'  + (handler ? ' type' : ' handler missing'), ':', message.constructor.name, message.toString());
+				}
 				handler && handler(message);
 			}
 		});
@@ -187,6 +202,7 @@ function __internalInitSen(Sen){
 			if (type['unionCode'] >= 0) {
 				typeCodeDict[type['unionCode'] + ''] = type;
 			}
+			type.maxTypeLength = Math.max.apply(Math, type.values.map(v => v.type.length + (v.isArray ? 3 : 1)));
 			if (!type.values.find(value => value.type === 'Double')) {
 				type.forceFloat32 = true;
 			}
@@ -216,6 +232,34 @@ function __internalInitSen(Sen){
 					}
 				}
 				return jsonObj;
+			}
+			ctor.prototype.toString = function() {
+				var obj = this.toJSON(),
+					{values, maxTypeLength} = MessageTypes.__innerTypes__[this.constructor.name],
+					cloneObj = {},
+					getName = (value, maxTypeLength) => {
+						var spaces = [],
+							name = value.type + (value.isArray ? '[]' : '');
+						spaces.length = maxTypeLength - name.length;
+						spaces.fill(' ');
+						return name + spaces.join('');
+					};
+				for (var key in obj) {
+					var value = values.find(v => v.valueName === key);
+					if (value) {
+						cloneObj[getName(value, maxTypeLength) + key] = obj[key];
+					} else {
+						cloneObj[key] = obj[key];
+					}
+				}
+				var json = JSON.stringify(cloneObj, null, '\t');
+				var matches = json.match(/".*":/gm);
+				for (var i = matches.length - 1; i >= 0; i--) {
+					var key = matches[i],
+						newKey = key.replace(/"/g, '');
+					json = json.replace(key, newKey);
+				}
+				return json;
 			}
 		}
 
@@ -424,6 +468,7 @@ function __internalInitSen(Sen){
 		this.context = defaultContext;
 		this.setLevel(defaultContext.filterLevel);
 		this.log = this.info;  // Convenience alias.
+		this.trace = false;
 	};
 
 	ContextualLogger.prototype = {
@@ -469,10 +514,14 @@ function __internalInitSen(Sen){
 			}
 		},
 
+		setTrace: function(enable) {
+			this.trace = !!enable;
+		},
+
 		// Invokes the logger callback if it's not being filtered.
 		invoke: function (level, msgArgs) {
 			if (logHandler && this.enabledFor(level)) {
-				logHandler(msgArgs, merge({ level: level }, this.context));
+				logHandler(msgArgs, merge({ level: level, trace: this.trace }, this.context));
 			}
 		}
 	};
@@ -608,17 +657,17 @@ function __internalInitSen(Sen){
 		Logger._prevLogger = global.Logger;
 
 		Logger.noConflict = function () {
-			global.Logger = Logger._prevLogger;
+			global.SLogger = Logger._prevLogger;
 			return Logger;
 		};
 
-		global.Logger = Logger;
+		global.SLogger = Logger;
 	}
 }(this));
 
-Sen.Logger = Logger.get("Sen");
-Logger.useDefaults({
-	defaultLevel: Logger.DEBUG,
+Sen.Logger = SLogger.get("Sen");
+SLogger.useDefaults({
+	defaultLevel: SLogger.DEBUG,
 	formatter: function(message, context) {
 		var now = new Date();
 		var tag = "[" + ("0" + now.getHours()).substr(-2) + ":" +
@@ -626,9 +675,10 @@ Logger.useDefaults({
 				("0" + now.getSeconds()).substr(-2) + "." + 
 				("000" + now.getMilliseconds()).substr(-4);
 		if (context.name) {
-			tag = tag + " " + context.name;
+			tag += " " + context.name;
 		}
-		tag = tag + "]";
+
+		tag += " " + context.level.name + "]";
 
 		if (typeof window === "undefined") {
 			var messageBulk = tag + " " + message.join("\r\n");
@@ -636,6 +686,17 @@ Logger.useDefaults({
 			message.length = 1;
 		} else {
 			message.unshift(tag);
+			if (context.trace && Error) {
+				var stack = new Error().stack;
+				if (stack) {
+					message.push('\n');
+					stack = stack.split('\n').slice(5);
+					stack.unshift('Stack');
+					message.push(stack.join('\n'));
+				}
+			}
 		}
 	}
 });
+Sen.Logger.setTrace(true);
+// Sen.Logger.setLevel(SLogger.ERROR)
