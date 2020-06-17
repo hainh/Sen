@@ -15,9 +15,11 @@
 			console.log(JSON.stringify(myData));
 		})
 		client.connect('ws://localhost:8080/ws');
+		console.time('connect')
 		client.onStatusChanged = function(statusCode) {
 			switch (statusCode) {
 				case Sen.Status.CONNECTED:
+					console.timeEnd('connect')
 					var myData = MessageTypes.MyData();
 					myData.A = 32;
 					myData.B = "d";

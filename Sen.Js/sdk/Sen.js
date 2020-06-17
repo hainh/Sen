@@ -22,7 +22,13 @@ function __internalInitSen(Sen){
 	  // Create a new Class that inherits from this class
 	  Class.extend = function(prop) {
 		var _super = this.prototype;
-	   
+		try {
+			var newClassName = prop.$className.split(/\W/)[0];
+		} catch {
+			throw 'Extend class must have "$className" property.';
+		}
+		delete prop.$className;
+
 		// Instantiate a base class (but only create the instance,
 		// don't run the init constructor)
 		initializing = true;
@@ -53,7 +59,6 @@ function __internalInitSen(Sen){
 			prop[name];
 		}
 		
-		var newClassName = prop.className ? prop.className.split(/\W/)[0] : 'Class';
 		var e = `// The dummy class constructor
 		var ctor = function ${newClassName}() {
 			// All construction is actually done in the init method
@@ -112,7 +117,7 @@ function __internalInitSen(Sen){
 		* Call handleMessage(messageType, handler) to register message handler.
 		*/
 		Sen.Client = Class.extend({
-			className: 'Client',
+			$className: 'Client',
 			init: function () {
 				var this_ = this;
 				this_.isConnecting = 0;
@@ -132,22 +137,22 @@ function __internalInitSen(Sen){
 				var socket = this_.socket = new WebSocket(uri);
 				socket.binaryType = "arraybuffer";
 
-				socket.onopen = (function onopen(ev) {
-					Sen.Logger.debug('Connected', ev);
+				socket.onopen = (function onopen(ev, ex) {
+					Sen.Logger.debug('Connected', ev, ex);
 					this.isConnected = 1;
 					this.isConnecting = 0;
 					this.onStatusChanged(Status.CONNECTED);
 				}).bind(this);
 
 				socket.onclose = (function onclose(ev) {
-					Sen.Logger.debug('Disconnected', ev);
+					Sen.Logger.debug('Disconnected with code', ev.code, ev);
 					this.onStatusChanged(Status.DISCONNECTED);
 					this.isConnected = 0;
 					this.isConnecting = 0;
 				}).bind(this);
 
 				socket.onerror = function onerror(ev) {
-					Sen.Logger.debug('Socket Error', ev, ev.code);
+					Sen.Logger.debug('WebSocket Error', ev);
 				};
 
 				socket.onmessage = this.__onMessage.bind(this);
@@ -693,5 +698,5 @@ SLogger.useDefaults({
 		}
 	}
 });
-// Sen.Logger.setTrace(true);
+Sen.Logger.setTrace(true);
 // Sen.Logger.setLevel(SLogger.ERROR)
