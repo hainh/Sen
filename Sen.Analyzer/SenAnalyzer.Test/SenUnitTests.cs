@@ -4,9 +4,9 @@ using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using TestHelper;
-using Sen;
+using SenAnalyzer;
 
-namespace Sen.Test
+namespace SenAnalyzer.Test
 {
     [TestClass]
     public class UnitTest : CodeFixVerifier
@@ -37,9 +37,9 @@ namespace ConsoleApplication1
 {
     class DemoPlayer : Player<IDemoUnionData>
     {
-        Immutable<IDemoUnionData> HandleMessage12(Message message)
+        ValueTask<IDemoUnionData> HandleMessage12(Message message)
         {
-            return new Immutable<IDemoUnionData>(message);
+            return new ValueTask<IDemoUnionData>(message);
         }
 
         Hand
@@ -61,7 +61,7 @@ namespace ConsoleApplication1
             var expected = new DiagnosticResult
             {
                 Id = "Sen",
-                Message = String.Format("Method {0} seem likes a message handler of {1}", "HandleMessage12", SenAnalyzer.HandleMessage),
+                Message = String.Format("Method {0} seem likes a message handler of {1}", "HandleMessage12", HandleMessageMethodAnalyzer.HandleMessage),
                 Severity = DiagnosticSeverity.Warning,
                 Locations =
                     new[] {
@@ -83,9 +83,9 @@ namespace ConsoleApplication1
 {
     class DemoPlayer : Player<IDemoUnionData>
     {
-        Immutable<IDemoUnionData> HandleMessage(Message message)
+        ValueTask<IDemoUnionData> HandleMessage(Message message)
         {
-            return new Immutable<IDemoUnionData>(message);
+            return new ValueTask<IDemoUnionData>(message);
         }
     }
     class Player<T> where T : IUnionData
@@ -107,12 +107,12 @@ namespace ConsoleApplication1
 
         protected override CodeFixProvider GetCSharpCodeFixProvider()
         {
-            return new SenCodeFixProvider();
+            return new RenameHandleMessageCodeFixProvider();
         }
 
         protected override DiagnosticAnalyzer GetCSharpDiagnosticAnalyzer()
         {
-            return new SenAnalyzer();
+            return new HandleMessageMethodAnalyzer();
         }
     }
 

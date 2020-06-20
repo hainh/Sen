@@ -54,9 +54,9 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Sen\Sen.csproj">
+    <ProjectReference Include="..\Sen\SenAnalyzer.csproj">
       <Project>{41ADC0AE-063F-4EA9-A8BC-3913A629F21E}</Project>
-      <Name>Sen</Name>
+      <Name>SenAnalyzer</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

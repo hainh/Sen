@@ -13,16 +13,23 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Rename;
 using Microsoft.CodeAnalysis.Text;
 
-namespace Sen
+namespace SenAnalyzer
 {
-    [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(SenCodeFixProvider)), Shared]
-    public class SenCodeFixProvider : CodeFixProvider
+    [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(RenameHandleMessageCodeFixProvider)), Shared]
+    public class RenameHandleMessageCodeFixProvider : CodeFixProvider
     {
         private const string title = "Change to HandleMessage";
 
         public sealed override ImmutableArray<string> FixableDiagnosticIds
         {
-            get { return ImmutableArray.Create(SenAnalyzer.RenameToHandleMessageDiagnosticId); }
+            get 
+            { 
+                return ImmutableArray.Create(
+                    HandleMessageMethodAnalyzer.RenameToHandleMessageDiagnosticId
+                    /*HandleMessageMethodAnalyzer.MessageTypeHasAttributeDiagnosticId,
+                    HandleMessageMethodAnalyzer.MessageTypeImplementDiagnosticId,
+                    HandleMessageMethodAnalyzer.MessageTypeMustBeDeclaredInUnionDiagnosticId*/);
+            }
         }
 
         public sealed override FixAllProvider GetFixAllProvider()
@@ -35,25 +42,29 @@ namespace Sen
         {
             var root = await context.Document.GetSyntaxRootAsync(context.CancellationToken).ConfigureAwait(false);
 
-            var diagnostic = context.Diagnostics.FirstOrDefault(d => d.Id == SenAnalyzer.RenameToHandleMessageDiagnosticId);
-            var diagnosticSpan = diagnostic.Location.SourceSpan;
+            var renameDiagnostic = context.Diagnostics.FirstOrDefault(d => d.Id == HandleMessageMethodAnalyzer.RenameToHandleMessageDiagnosticId);
+            if (renameDiagnostic != null)
+            {
+                var diagnosticSpan = renameDiagnostic.Location.SourceSpan;
 
-            // Find the type declaration identified by the diagnostic.
-            SyntaxNode declaration = root.FindToken(diagnosticSpan.Start).Parent;
+                // Find the type declaration identified by the diagnostic.
+                SyntaxNode declaration = root.FindToken(diagnosticSpan.Start).Parent;
 
-            // Register a code action that will invoke the fix.
-            context.RegisterCodeFix(
-                CodeAction.Create(
-                    title: title,
-                    createChangedSolution: c => MakeUppercaseAsync(context.Document, declaration, c),
-                    equivalenceKey: title),
-                diagnostic);
+                // Register a code action that will invoke the fix.
+                context.RegisterCodeFix(
+                    CodeAction.Create(
+                        title: title,
+                        createChangedSolution: c => MakeUppercaseAsync(context.Document, declaration, c),
+                        equivalenceKey: title),
+                    renameDiagnostic);
+            }
+
         }
 
         private async Task<Solution> MakeUppercaseAsync(Document document, SyntaxNode methodDecl, CancellationToken cancellationToken)
         {
             // Compute new uppercase name.
-            var newName = SenAnalyzer.HandleMessage;
+            var newName = HandleMessageMethodAnalyzer.HandleMessage;
 
             // Get the symbol representing the type to be renamed.
             var semanticModel = await document.GetSemanticModelAsync(cancellationToken);
