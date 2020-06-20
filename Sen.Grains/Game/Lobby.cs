@@ -8,7 +8,7 @@ namespace Sen.Game
     public delegate void RoomChanged(IRoom room);
 
     /// <inheritdoc/>
-    public abstract class Lobby : Room, ILobby
+    public abstract class Lobby<TGrainState> : Room<TGrainState>, ILobby
     {
         public event RoomChanged RoomAdded;
 

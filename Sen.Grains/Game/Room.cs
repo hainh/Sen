@@ -19,7 +19,7 @@ namespace Sen.Game
     /// handle each message type from player
     /// </para>
     /// </summary>
-    public abstract class Room : Grain, IRoom
+    public abstract class Room<TGrainState> : Grain<TGrainState>, IRoom
     {
         protected long _matchId;
         protected string _roomName;
@@ -57,7 +57,9 @@ namespace Sen.Game
         /// handle a specific message.
         /// </summary>
         /// <returns>A <see cref="IUnionData"/> will be serialized and returned to game client or null to send nothing</returns>
+#pragma warning disable IDE0060 // Remove unused parameter
         protected ValueTask<IUnionData> HandleMessage(IUnionData message, IPlayer player) => default;
+#pragma warning restore IDE0060 // Remove unused parameter
 
         /// <summary>
         /// Body of this method must be

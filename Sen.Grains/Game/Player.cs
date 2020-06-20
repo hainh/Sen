@@ -131,7 +131,11 @@ namespace Sen.Game
 
         public async ValueTask Write(Immutable<IUnionData> message, WiredDataType underlieData = WiredDataType.Normal)
         {
-            byte[] rawData = MessagePackSerializer.Serialize(message.Value);
+            WiredData<TUnionData> wiredData = new WiredData<TUnionData>
+            {
+                Data = message.Value as TUnionData
+            };
+            byte[] rawData = MessagePackSerializer.Serialize(wiredData);
             await Write(rawData);
         }
 
@@ -149,9 +153,13 @@ namespace Sen.Game
             }
         }
 
-        public static async ValueTask Broadcast(Immutable<IUnionData> message, IEnumerable<IPlayer> players)
+        public static async ValueTask Broadcast(IUnionData message, IEnumerable<IPlayer> players)
         {
-            byte[] rawData = MessagePackSerializer.Serialize(message.Value);
+            WiredData<TUnionData> wiredData = new WiredData<TUnionData>
+            {
+                Data = message as TUnionData
+            };
+            byte[] rawData = MessagePackSerializer.Serialize(wiredData);
             await Task.WhenAll(players.Select(player => (player as Player<TUnionData, TGrainState>).Write(rawData)));
         }
 
