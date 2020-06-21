@@ -14,16 +14,14 @@
 		client.handleMessage('MyData', function(myData) {
 			console.log(JSON.stringify(myData));
 		})
-		client.connect('ws://localhost:8080/ws');
+		client.connect('ws://localhost:2052/websocket/haihai/skjdhwiuehkjdhfjksd/');
 		console.time('connect')
 		client.onStatusChanged = function(statusCode) {
 			switch (statusCode) {
 				case Sen.Status.CONNECTED:
 					console.timeEnd('connect')
-					var myData = MessageTypes.MyData();
-					myData.A = 32;
-					myData.B = "d";
-					myData.C = 99;
+					var myData = MessageTypes.Hello();
+					myData.Message = "Cái đèo gì thế?";
 					this.send(myData);
 					break;
 			}

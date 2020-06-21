@@ -31,9 +31,10 @@ namespace Sen
         /// </summary>
         /// <param name="local">Local IP endpoint</param>
         /// <param name="remote">Remote IP endpoint</param>
+        /// <param name="username">Username for authorization</param>
         /// <param name="accessToken">Access token for authorization</param>
         /// <returns>true if successfully authorized, false other wise</returns>
-        ValueTask<bool> InitConnection(EndPoint local, EndPoint remote, string accessToken);
+        ValueTask<bool> InitConnection(EndPoint local, EndPoint remote, string username, string accessToken);
         /// <summary>
         /// Write/send data to client
         /// </summary>

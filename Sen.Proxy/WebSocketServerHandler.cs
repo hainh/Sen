@@ -57,7 +57,7 @@ namespace Sen.Proxy
             string[] uriComponent = req.Uri.Split('/', StringSplitOptions.RemoveEmptyEntries);
 
             // Allow only GET methods.
-            if (!Equals(req.Method, HttpMethod.Get) || uriComponent[0] != "websocket")
+            if (uriComponent.Length != 3 || !Equals(req.Method, HttpMethod.Get) || uriComponent[0] != "websocket")
             {
                 SendHttpResponse(ctx, req, new DefaultFullHttpResponse(Http11, Forbidden));
                 return;
@@ -82,7 +82,7 @@ namespace Sen.Proxy
                     }
                     //Create the grain to communicate with the server(silo)
                     _proxyConnection = _playerFactory.CreatePlayer(uriComponent[1]);
-                    bool proxySuccess = await _proxyConnection.InitConnection(ctx.Channel.LocalAddress, remoteIpEndPoint, uriComponent[2]).AsTask();
+                    bool proxySuccess = await _proxyConnection.InitConnection(ctx.Channel.LocalAddress, remoteIpEndPoint, uriComponent[1], uriComponent[2]).AsTask();
                     if (proxySuccess)
                     {
                         await _handshaker.HandshakeAsync(ctx.Channel, req);
@@ -186,7 +186,10 @@ namespace Sen.Proxy
 
         public override void ChannelInactive(IChannelHandlerContext context)
         {
-            _proxyConnection.Disconnect();
+            if (_proxyConnection != null)
+            {
+                _proxyConnection.Disconnect();
+            }
             base.ChannelInactive(context);
         }
 

@@ -137,7 +137,7 @@ namespace Sen.Utilities.Console
             return methods;
         }
 
-        private static Type objectType = typeof(object);
+        private static readonly Type objectType = typeof(object);
 
         private static bool IsCommand(MethodInfo method)
         {

@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace Sen
@@ -59,7 +60,7 @@ namespace Sen
         /// <returns><code>true</code> if authenticated successfully, <code>false</code> otherwise</returns>
         protected abstract ValueTask<bool> CheckAccessToken(string accessToken);
 
-        public virtual async ValueTask<bool> InitConnection(EndPoint local, EndPoint remote, string accessToken)
+        public virtual async ValueTask<bool> InitConnection(EndPoint local, EndPoint remote, string username, string accessToken)
         {
             if (LocalAddress != null)
             {
@@ -160,7 +161,9 @@ namespace Sen
         public override Task OnActivateAsync()
         {
             IStreamProvider streamProvider = GetStreamProvider(SMSProvider);
-            _stream = streamProvider.GetStream<Immutable<byte[]>>(this.GetPrimaryKey(), ProxyStream);
+            string primaryKey = this.GetPrimaryKeyString();
+            byte[] hash = System.Security.Cryptography.MD5.Create().ComputeHash(Encoding.UTF8.GetBytes(primaryKey));
+            _stream = streamProvider.GetStream<Immutable<byte[]>>(new Guid(hash), ProxyStream);
             return Task.CompletedTask;
         }
     }

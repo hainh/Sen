@@ -13,17 +13,12 @@ namespace JsonDataGenerator
             var jsonUtf8 = new DataCodeGenerator().GenerateDataJson(folder);
             if (jsonUtf8 != null)
             {
-                Console.WriteLine(Encoding.UTF8.GetString(jsonUtf8));
                 string destinationFilePath = Path.Join(folder, "MessageTypes.js");
-                using (var fileStream = new FileStream(destinationFilePath, FileMode.Create, FileAccess.Write))
-                {
-                    using (var binWriter = new BinaryWriter(fileStream))
-                    {
-                        binWriter.Write(JsCodeHeader);
-                        binWriter.Write(jsonUtf8);
-                        binWriter.Write((byte)';');
-                    }
-                }
+                using var fileStream = new FileStream(destinationFilePath, FileMode.Create, FileAccess.Write);
+                using var binWriter = new BinaryWriter(fileStream);
+                binWriter.Write(JsCodeHeader);
+                binWriter.Write(jsonUtf8);
+                binWriter.Write((byte)';');
             }
         }
 

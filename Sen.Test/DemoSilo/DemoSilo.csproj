@@ -22,7 +22,7 @@
   </ItemGroup>
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="$(OutDir)JsonDataGenerator.exe" />
+    <Exec Command="$(OutDir)JsonDataGenerator.exe $(OutDir)" />
   </Target>
 
 </Project>

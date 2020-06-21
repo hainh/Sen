@@ -12,7 +12,7 @@ namespace Sen.Server
 {
     public class SenServer
     {
-        public static async Task<int> Run(string[] args)
+        public static async Task<int> Run()
         {
             try
             {
@@ -26,7 +26,8 @@ namespace Sen.Server
                             {
                                 options.ProtocolVersion = Orleans.Runtime.Messaging.NetworkProtocolVersion.Version2;
                             })
-                            .AddSimpleMessageStreamProvider("SMSProvider");
+                            .AddSimpleMessageStreamProvider("SMSProvider")
+                            .AddMemoryGrainStorageAsDefault();
 
                         if (isDevelopment)
                         {

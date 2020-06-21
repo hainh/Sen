@@ -87,7 +87,7 @@ namespace JsonDataGenerator
             }
 
             Console.ForegroundColor = ConsoleColor.Cyan;
-            Console.WriteLine($"");
+            Console.WriteLine($"Root union interface is {root.FullName}, {Types.Count} message types detected.");
             Console.ResetColor();
 
             return JsonSerializer.SerializeToUtf8Bytes(new { Types }, new JsonSerializerOptions()

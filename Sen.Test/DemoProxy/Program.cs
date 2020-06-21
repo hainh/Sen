@@ -15,14 +15,15 @@ namespace DemoProxy
         }
     }
 
+#pragma warning disable IDE0051 // Remove unused private members
     class Commander : SimpleCommander
     {
-        void Ha(string hoi)
+        static void Ha(string hoi)
         {
-            Console.WriteLine("hah?");
+            Console.WriteLine("?" + hoi);
         }
 
-        public void He([ParameterHelper("what is kee?")]string keee)
+        static void He([ParameterHelper("what is kee?")]string keee)
         {
             Console.WriteLine("?" + keee);
         }
@@ -35,4 +36,5 @@ namespace DemoProxy
             Console.Write(kaka);
         }
     }
+#pragma warning restore IDE0051 // Remove unused private members
 }

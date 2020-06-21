@@ -5,9 +5,9 @@ namespace DemoSilo
 {
     class Program
     {
-        public static async Task<int> Main(string[] args)
+        public static async Task<int> Main()
         {
-            return await SenServer.Run(args);
+            return await SenServer.Run();
         }
     }
 }

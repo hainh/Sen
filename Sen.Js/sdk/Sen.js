@@ -254,6 +254,9 @@ function __internalInitSen(Sen){
 				}
 				var json = JSON.stringify(cloneObj, null, '\t');
 				var matches = json.match(/".*":/gm);
+				if (!matches) {
+					return json;
+				}
 				for (var i = matches.length - 1; i >= 0; i--) {
 					var key = matches[i],
 						newKey = key.replace(/"/g, '');
@@ -359,7 +362,7 @@ function __internalInitSen(Sen){
 		var dataType = message.constructor.name;
 		var typeDesc = MessageTypes.__innerTypes__[dataType];
 		if (!typeDesc || typeDesc.unionCode < 0) {
-			throw `Type MessageTypes.${dataType} is not supported`;
+			throw `Type ${typeDesc ? 'MessageTypes.' : ''}${dataType} is not supported to send to server.`;
 		}
 		var msgpackData = [0, [typeDesc.unionCode, []]];
 		getValues(message, msgpackData[1][1], MessageTypes);
