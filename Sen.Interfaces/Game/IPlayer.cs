@@ -1,9 +1,9 @@
 ﻿using Orleans.Concurrency;
-using Sen.DataModel;
+using Sen;
 using System.Net;
 using System.Threading.Tasks;
 
-namespace Sen.Game
+namespace Sen
 {
     public interface IPlayer
     {
@@ -27,7 +27,7 @@ namespace Sen.Game
         //ValueTask<bool> IsBot { get; }
         ValueTask<bool> IsBot();
         /// <summary>
-        /// Start the connection
+        /// Start the connection. Called by client or proxy server to initialize connection infomation.
         /// </summary>
         /// <param name="local">Local IP endpoint</param>
         /// <param name="remote">Remote IP endpoint</param>

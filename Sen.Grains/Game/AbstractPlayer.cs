@@ -2,17 +2,13 @@
 using Orleans;
 using Orleans.Concurrency;
 using Orleans.Streams;
-using Sen.DataModel;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using System.Reflection;
-using System.Runtime.InteropServices;
-using System.Text;
 using System.Threading.Tasks;
 
-namespace Sen.Game
+namespace Sen
 {
     /// <summary>
     /// Base class for proxy connection to silo.
@@ -23,10 +19,9 @@ namespace Sen.Game
     /// </summary>
     /// <typeparam name="TUnionData">MessagePack's Union interface root of all message types</typeparam>
     /// <typeparam name="TGrainState">Grain state</typeparam>
-    public abstract class Player<TUnionData, TGrainState> : Grain<TGrainState>, IPlayer
-         where TUnionData : class, IUnionData
+    public abstract class AbstractPlayer<TUnionData, TGrainState> : BaseScheduleGrain<TGrainState>, IPlayer
+         where TUnionData : IUnionData
     {
-        public static readonly TimeSpan INFINITE_TIMESPAN = TimeSpan.FromMilliseconds(-1);
         public const string ProxyStream = "ProxyStream";
         public const string SMSProvider = "SMSProvider";
 
@@ -37,7 +32,9 @@ namespace Sen.Game
         public IPEndPoint RemoteAddress { get; private set; }
         public ValueTask<IRoom> GetRoom() => new ValueTask<IRoom>(_room);
 
-        public abstract ValueTask<string> GetName();
+        public abstract string Name { get; }
+
+        public ValueTask<string> GetName() => new ValueTask<string>(Name);
 
         protected IAsyncStream<Immutable<byte[]>> _stream;
 
@@ -49,17 +46,37 @@ namespace Sen.Game
 
         public ValueTask<bool> IsBot() => new ValueTask<bool>(_isBot);
 
-        public virtual ValueTask<bool> InitConnection(EndPoint local, EndPoint remote, string accessToken)
+        /// <summary>
+        /// Get a game world instance.
+        /// </summary>
+        /// <returns>IGameWorld instance that this game system lay on</returns>
+        protected abstract ILobby GetGameWorld();
+
+        /// <summary>
+        /// Check if this <paramref name="accessToken"/> is valid. This means user authenticated successfully.
+        /// </summary>
+        /// <param name="accessToken">Access token to check with</param>
+        /// <returns><code>true</code> if authenticated successfully, <code>false</code> otherwise</returns>
+        protected abstract ValueTask<bool> CheckAccessToken(string accessToken);
+
+        public virtual async ValueTask<bool> InitConnection(EndPoint local, EndPoint remote, string accessToken)
         {
             if (LocalAddress != null)
             {
-                return new ValueTask<bool>(true);
+                return true;
             }
 
             LocalAddress = local as IPEndPoint;
             RemoteAddress = remote as IPEndPoint;
 
-            return new ValueTask<bool>(true);
+            if (!await CheckAccessToken(accessToken))
+            {
+                return false;
+            }
+
+            ILobby gameWorld = GetGameWorld();
+            await gameWorld.JoinRoom(this, Name);
+            return true;
         }
 
         /// <summary>
@@ -77,7 +94,7 @@ namespace Sen.Game
             {
                 return (TUnionData)await _room.HandleRoomMessage(message, this);
             }
-            return null;
+            return default;
         }
 
         /// <summary>
@@ -98,42 +115,11 @@ namespace Sen.Game
             return new Immutable<byte[]>(null);
         }
 
-        /// <summary>
-        /// Schedule a callback to call once after <paramref name="dueTime"/>.
-        /// <para>
-        /// See also <seealso cref="Grain.RegisterTimer(Func{object, Task}, object, TimeSpan, TimeSpan)"/>
-        /// </para>
-        /// </summary>
-        /// <param name="asyncCallback">Callback to call</param>
-        /// <param name="state">State to pass to callback</param>
-        /// <param name="dueTime">Time to wait before callback execution</param>
-        /// <returns>A disposable handler to cancel the schedule</returns>
-        protected IDisposable Schedule(Func<object, Task> asyncCallback, object state, TimeSpan dueTime)
-        {
-            return RegisterTimer(asyncCallback, state, dueTime, INFINITE_TIMESPAN);
-        }
-
-        /// <summary>
-        /// Schedule a callback to call in interval.
-        /// <para>
-        /// See also <seealso cref="Grain.RegisterTimer(Func{object, Task}, object, TimeSpan, TimeSpan)"/>
-        /// </para>
-        /// </summary>
-        /// <param name="asyncCallback">Callback to call</param>
-        /// <param name="state">State to pass to callback</param>
-        /// <param name="dueTime">Time to wait before first callback execution</param>
-        /// <param name="period">Time to repeat subsequence callback</param>
-        /// <returns>A disposable handler to cancel the schedule</returns>
-        protected IDisposable ScheduleInterval(Func<object, Task> asyncCallback, object state, TimeSpan dueTime, TimeSpan period)
-        {
-            return RegisterTimer(asyncCallback, state, dueTime, period);
-        }
-
         public async ValueTask Write(Immutable<IUnionData> message, WiredDataType underlieData = WiredDataType.Normal)
         {
             WiredData<TUnionData> wiredData = new WiredData<TUnionData>
             {
-                Data = message.Value as TUnionData
+                Data = (TUnionData)message.Value
             };
             byte[] rawData = MessagePackSerializer.Serialize(wiredData);
             await Write(rawData);
@@ -157,10 +143,10 @@ namespace Sen.Game
         {
             WiredData<TUnionData> wiredData = new WiredData<TUnionData>
             {
-                Data = message as TUnionData
+                Data = (TUnionData)message
             };
             byte[] rawData = MessagePackSerializer.Serialize(wiredData);
-            await Task.WhenAll(players.Select(player => (player as Player<TUnionData, TGrainState>).Write(rawData)));
+            await Task.WhenAll(players.Select(player => (player as AbstractPlayer<TUnionData, TGrainState>).Write(rawData)));
         }
 
         public ValueTask Disconnect()

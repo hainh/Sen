@@ -3,18 +3,23 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Sen.Game
+namespace Sen
 {
     public delegate void RoomChanged(IRoom room);
 
     /// <inheritdoc/>
-    public abstract class Lobby<TGrainState> : Room<TGrainState>, ILobby
+    public abstract class AbstractLobby<TGrainState> : AbstractRoom<TGrainState>, ILobby
     {
         public event RoomChanged RoomAdded;
 
         public event RoomChanged RoomRemoved;
 
         protected IList<IRoom> _rooms;
+
+        public AbstractLobby()
+        {
+            _playerLimit = int.MaxValue;
+        }
 
         public ValueTask<IList<IRoom>> GetRooms() => new ValueTask<IList<IRoom>>(_rooms);
 

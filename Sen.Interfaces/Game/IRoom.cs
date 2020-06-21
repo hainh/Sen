@@ -1,12 +1,12 @@
 ﻿using Orleans;
 using Orleans.Concurrency;
-using Sen.DataModel;
+using Sen;
 using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Sen.Game
+namespace Sen
 {
     public interface IRoom
     {
@@ -23,7 +23,7 @@ namespace Sen.Game
 
         ValueTask SetParent(ILobby room);
 
-        ValueTask<bool> JoinRoom(IPlayer player);
+        ValueTask<bool> JoinRoom(IPlayer player, string playerName);
 
         ValueTask<IUnionData> HandleRoomMessage(IUnionData message, IPlayer player);
     }

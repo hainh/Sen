@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Sen.DataModel
+namespace Sen
 {
     [MessagePackObject]
     public class WiredData<TUnionDataInterface> where TUnionDataInterface : IUnionData

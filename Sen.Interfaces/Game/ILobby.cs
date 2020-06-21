@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace Sen.Game
+namespace Sen
 {
     public interface ILobby: IRoom
     {

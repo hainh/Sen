@@ -1,14 +1,7 @@
-﻿using MessagePack;
-using Orleans;
-using Sen.DataModel;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Text;
+﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace Sen.Game
+namespace Sen
 {
     public delegate void PlayerChange(IPlayer player);
 
@@ -19,7 +12,7 @@ namespace Sen.Game
     /// handle each message type from player
     /// </para>
     /// </summary>
-    public abstract class Room<TGrainState> : Grain<TGrainState>, IRoom
+    public abstract class AbstractRoom<TGrainState> : BaseScheduleGrain<TGrainState>, IRoom
     {
         protected long _matchId;
         protected string _roomName;
@@ -74,21 +67,20 @@ namespace Sen.Game
             return ((dynamic)this).HandleMessage((dynamic)message, player);
         }
 
-        public async ValueTask<bool> JoinRoom(IPlayer player)
+        public ValueTask<bool> JoinRoom(IPlayer player, string playerName)
         {
             if (!IsFull().Result)
             {
-                string playerName = await player.GetName();
-                if (!_players.ContainsKey(await player.GetName()))
+                if (!_players.ContainsKey(playerName))
                 {
                     OnPlayerJoining(player);
                     _players.Add(playerName, player);
                     OnPlayerJoined(player);
-                    return true;
+                    return new ValueTask<bool>(true);
                 }
             }
 
-            return false;
+            return new ValueTask<bool>(false);
         }
 
         protected virtual async ValueTask<bool> RemovePlayer(IPlayer player)
