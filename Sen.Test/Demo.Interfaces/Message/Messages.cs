@@ -1,11 +1,10 @@
 ﻿using MessagePack;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Demo.Interfaces.Message
 {
-    public class Messages
+
+    [MessagePackObject]
+    public class Messages : IDemoUnionData
     {
     }
 
@@ -13,13 +12,26 @@ namespace Demo.Interfaces.Message
     public class JoinRoom : IDemoUnionData
     {
         [Key(0)]
-        public string RoomName { get; set; }
+        public string RoomName;
     }
 
     [MessagePackObject]
     public class Hello : IDemoUnionData
     {
         [Key(0)]
-        public string Message { get; set; }
+        public string Message;
+    }
+
+    [MessagePackObject]
+    public class HHHaa: IDemoUnionData 
+    {
+        [Key(0)]
+        public string Aaa;
+    }
+
+    [MessagePackObject]
+    public class EEE: IDemoUnionData
+    {
+
     }
 }

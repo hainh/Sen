@@ -1,20 +1,33 @@
 ﻿using Demo.Interfaces;
-using Orleans;
-using Sen.Game;
-using System;
+using Demo.Interfaces.Message;
+using Sen;
 using System.Threading.Tasks;
 
 namespace Demo.Grains
 {
-    public class DemoPlayer : Player<IDemoUnionData, PlayerState>, IDemoPlayer
+    public class DemoPlayer : AbstractPlayer<IDemoUnionData, PlayerState>, IDemoPlayer
     {
-        public override ValueTask<string> GetName() => new ValueTask<string>(State.Name);
+        public override string Name => State.Name;
 
         public override ValueTask OnDisconnect()
         {
             return default;
         }
 
-        public ValueTask<IDemoUnionData> HandleMessage()
+        public ValueTask<IDemoUnionData> HandleMessage(Hello hello)
+        {
+            hello.Message = $"{hello.Message} huh?";
+            return new ValueTask<IDemoUnionData>(hello);
+        }
+
+        protected override ILobby GetGameWorld()
+        {
+            return GrainFactory.GetGrain<IGameWorld>("");
+        }
+
+        protected override ValueTask<bool> CheckAccessToken(string accessToken)
+        {
+            return new ValueTask<bool>(true);
+        }
     }
 }

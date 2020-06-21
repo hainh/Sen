@@ -12,6 +12,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.Orleans.Core.Abstractions" Version="3.2.0" />
+    <PackageReference Include="SenAnalyzer" Version="1.0.0.1" />
   </ItemGroup>
 
   <ItemGroup>
