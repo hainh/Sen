@@ -5,7 +5,7 @@ using DotNetty.Common.Utilities;
 using DotNetty.Transport.Channels;
 using Microsoft.Extensions.Logging;
 using Orleans.Concurrency;
-using Sen.Game;
+using Sen;
 using System;
 using System.Diagnostics;
 using System.Net;

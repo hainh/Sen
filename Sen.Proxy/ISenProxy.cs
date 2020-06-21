@@ -1,6 +1,6 @@
 ﻿using Orleans.Concurrency;
 using Orleans.Streams;
-using Sen.Game;
+using Sen;
 using System.Threading.Tasks;
 
 namespace Sen.Proxy

@@ -19,6 +19,7 @@ namespace Sen.Proxy
 {
     public class DotNettyProxy : ISenProxy
     {
+        private const string text = " is listening on port ";
         public ProxyConfig ProxyConfig { get; }
         readonly Dictionary<string, X509Certificate2> Certificates = new Dictionary<string, X509Certificate2>();
 
@@ -77,14 +78,14 @@ namespace Sen.Proxy
                         IChannelPipeline pipeline = channel.Pipeline;
                         IPEndPoint localEndPoint = channel.LocalAddress as IPEndPoint;
                         Listener listener = GetListener(localEndPoint.Port);
-                        if (listener is WebSocketListener webSocketListener)
+                        if (listener is WebSocketListener ws)
                         {
-                            if (webSocketListener.UseTLS)
+                            if (ws.UseTLS)
                             {
-                                if (!Certificates.TryGetValue(webSocketListener.CertificateName, out X509Certificate2 x509Certificate2))
+                                if (!Certificates.TryGetValue(ws.CertificateName, out X509Certificate2 x509Certificate2))
                                 {
-                                    x509Certificate2 = GetCertificateFromStore(webSocketListener.StoreLocation, webSocketListener.CertificateName);
-                                    Certificates.Add(webSocketListener.CertificateName, x509Certificate2);
+                                    x509Certificate2 = GetCertificateFromStore(ws.StoreLocation, ws.CertificateName);
+                                    Certificates.Add(ws.CertificateName, x509Certificate2);
                                 }
 
                                 pipeline.AddLast(TlsHandler.Server(x509Certificate2));
@@ -112,21 +113,36 @@ namespace Sen.Proxy
             await Bind();
             IChannel bootstrapChannel = await bootstrap.BindAsync(IPAddress.Loopback, 9090);
             IChannel nextChannel = await bootstrap.BindAsync(IPAddress.Loopback, 9091);
-            Console.WriteLine("Websocket listening");
-            
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.WriteLine("Proxy Server started.");
+            Console.ResetColor();
+
             async Task Bind()
             {
                 foreach (Listener listener in ProxyConfig.Listeners)
                 {
                     if (channels.All(c => (c.LocalAddress as IPEndPoint).Port != listener.Port))
                     {
+                        if (listener is WebSocketListener ws && ws.UseTLS)
+                        {
+                            X509Certificate2 x509Certificate2 = 
+                                GetCertificateFromStore(ws.StoreLocation, ws.CertificateName);
+                            Certificates.Add(ws.CertificateName, x509Certificate2);
+                        }
                         try
                         {
                             IChannel channel = await bootstrap.BindAsync(listener.Port);
                             channels.Add(channel);
-                            string msg = "Listening on port " + listener.Port;
+                            string name = listener.GetType().Name;
+                            name = name.Substring(0, name.IndexOf("Listener"));
+                            string msg = name + text + listener.Port;
                             logger.LogInformation(msg);
-                            Console.WriteLine(msg);
+                            Console.ForegroundColor = ConsoleColor.Magenta;
+                            Console.Write(name);
+                            Console.ResetColor();
+                            Console.Write(text);
+                            Console.ForegroundColor = ConsoleColor.Magenta;
+                            Console.WriteLine(listener.Port);
                         }
                         catch (Exception e)
                         {

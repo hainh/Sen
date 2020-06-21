@@ -26,4 +26,8 @@
     </None>
   </ItemGroup>
 
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="$(OutDir)JsonDataGenerator" />
+  </Target>
+
 </Project>

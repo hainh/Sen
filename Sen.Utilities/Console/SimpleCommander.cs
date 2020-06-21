@@ -13,89 +13,156 @@ namespace Sen.Utilities.Console
         public async Task RunAsync()
         {
             ForegroundColor = ConsoleColor.Green;
-            WriteLine("Type command to start. Type \"Help\" for helps.");
+            WriteLine("Commander is running. Type \"Help\" for help of available commands.");
             ResetColor();
-            Type type = GetType();
-            MethodInfo[] methods = type.GetMethods().Where(IsCommand).ToArray();
+            MethodInfo[] methods = this.GetAllCommands();
             while (true)
             {
-                string[] commandParams = ReadLine().ToLower().Split(' ');
+                Write(">> ");
+                string[] commandParams = ReadLine().ToLower().Split(' ', StringSplitOptions.RemoveEmptyEntries);
                 MethodInfo command = methods.FirstOrDefault(method => 
                         method.Name.ToLower() == commandParams[0]
                         && method.GetParameters().Length == commandParams.Length - 1);
 
                 if (command == null)
                 {
-                    WriteLine("No command {0}", commandParams[0]);
+                    Write("Not recognized command: ");
+                    ForegroundColor = ConsoleColor.Cyan;
+                    Write(commandParams[0]);
+                    ResetColor();
+                    WriteLine(" with {0} argument{1}. Type 'help' for more.", commandParams.Length - 1, commandParams.Length == 1 ? string.Empty : "s");
                     continue;
                 }
-                if (command.ReturnType == typeof(Task))
+                try
                 {
-                    await (Task)command.Invoke(this, commandParams.Skip(1).ToArray());
+                    if (command.ReturnType == typeof(Task))
+                    {
+                        await (Task)command.Invoke(this, commandParams.Skip(1).ToArray());
+                    }
+                    else
+                    {
+                        command.Invoke(this, commandParams.Skip(1).ToArray());
+                    }
+                    WriteLine();
                 }
-                else
+                catch (Exception e)
                 {
-                    command.Invoke(this, commandParams.Skip(1).ToArray());
+                    ForegroundColor = ConsoleColor.Red;
+                    WriteLine(e);
+                    WriteLine(e.StackTrace);
                 }
+                ResetColor();
             }
         }
 
-        static bool IsCommand(MethodInfo method)
-        {
-            return !method.IsStatic && method.Name != nameof(RunAsync)
-                && typeof(object).GetMethods().All(om => om.Name != method.Name)
-                && method.GetParameters().All(p => p.ParameterType == typeof(string));
-        }
-
-        [Helper("Print Help")]
+        [CommandHelper("Print this help")]
         public Task Help()
         {
-            Type type = GetType();
-            MethodInfo[] methods = type.GetMethods().Where(IsCommand).ToArray();
+            WriteLine("All available commands:");
+            MethodInfo[] methods = this.GetAllCommands();
             foreach (var method in methods)
             {
+                Write("- ");
                 ForegroundColor = ConsoleColor.Cyan;
                 Write(method.Name);
                 ResetColor();
-                HelperAttribute helper = method.GetCustomAttribute<HelperAttribute>();
+                CommandHelperAttribute helper = method.GetCustomAttribute<CommandHelperAttribute>();
                 if (helper != null)
                 {
                     Write(": ");
-                    WriteLine(helper.HelpText ?? string.Empty);
+                    Write(helper.HelpText ?? string.Empty);
                 }
-                ParameterInfo[] parameters = method.GetParameters();
-                IEnumerable<ArgumentAttribute> argumentHelpers = method.GetCustomAttributes<ArgumentAttribute>();
-                int count = 1;
-                foreach (ArgumentAttribute ah in argumentHelpers)
+                ParameterInfo[] parameterInfos = method.GetParameters();
+                IEnumerable<ParameterHelperAttribute> parameterHelpers = method.GetCustomAttributes<ParameterHelperAttribute>();
+                if (parameterHelpers.Count() > 0)
                 {
-                    if (parameters.Length < count)
+                    WriteLine();
+                    int count = 0;
+                    foreach (ParameterHelperAttribute ah in parameterHelpers)
                     {
-                        break;
+                        if (parameterInfos.Length <= count)
+                        {
+                            break;
+                        }
+                        ForegroundColor = ConsoleColor.DarkGray;
+                        Write("  arg{0}", count);
+                        ForegroundColor = ConsoleColor.Magenta;
+                        Write(" {0}", parameterInfos[count].Name);
+                        ResetColor();
+                        if (!string.IsNullOrWhiteSpace(ah.HelpText))
+                        {
+                            WriteLine(": {0}", ah.HelpText);
+                        }
+                        count++;
                     }
-                    WriteLine("   arg{0} {1}: {2}", count, parameters[count - 1].Name, ah.HelpText);
-                    count++;
+                }
+                else if (parameterInfos.Length > 0)
+                {
+                    WriteLine();
+                    foreach (ParameterInfo parameter in parameterInfos)
+                    {
+                        ParameterHelperAttribute parameterHelper =
+                            parameter.GetCustomAttributes<ParameterHelperAttribute>().FirstOrDefault();
+                        string helperText = parameterHelper?.HelpText ?? null;
+                        ForegroundColor = ConsoleColor.DarkGray;
+                        Write("  arg{0}", parameter.Position);
+                        ForegroundColor = ConsoleColor.Magenta;
+                        Write(" {0}", parameter.Name);
+                        ResetColor();
+                        if (helperText != null)
+                        {
+                            WriteLine(": {0}", helperText);
+                        }
+                        else
+                        {
+                            WriteLine();
+                        }
+                    }
+                }
+                if (parameterInfos.Length == 0 && parameterHelpers.Count() == 0 && method != methods[^1])
+                {
+                    WriteLine();
                 }
             }
             return Task.CompletedTask;
         }
     }
 
-    public class HelperAttribute: Attribute
+    static class Helper
+    {
+        internal static MethodInfo[] GetAllCommands(this SimpleCommander commander)
+        {
+            Type type = commander.GetType();
+            MethodInfo[] methods = type.GetMethods(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static).Where(IsCommand).ToArray();
+            return methods;
+        }
+
+        private static Type objectType = typeof(object);
+
+        private static bool IsCommand(MethodInfo method)
+        {
+            return method.Name != nameof(SimpleCommander.RunAsync)
+                && method.DeclaringType != objectType
+                && method.GetParameters().All(p => p.ParameterType == typeof(string));
+        }
+    }
+
+    public class CommandHelperAttribute: Attribute
     {
         public string HelpText { get; set; }
 
-        public HelperAttribute(string helpText)
+        public CommandHelperAttribute(string helpText)
         {
             HelpText = helpText;
         }
     }
 
-    [AttributeUsage(AttributeTargets.Method, AllowMultiple = true)]
-    public class ArgumentAttribute : Attribute
+    [AttributeUsage(AttributeTargets.Method | AttributeTargets.Parameter, AllowMultiple = true)]
+    public class ParameterHelperAttribute : Attribute
     {
         public string HelpText { get; set; }
 
-        public ArgumentAttribute(string helpText)
+        public ParameterHelperAttribute(string helpText)
         {
             HelpText = helpText;
         }

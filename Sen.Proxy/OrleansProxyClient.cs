@@ -3,7 +3,7 @@ using Orleans;
 using Orleans.Concurrency;
 using Orleans.Hosting;
 using Orleans.Streams;
-using Sen.Game;
+using Sen;
 using Sen.Utilities.Console;
 using System;
 using System.Threading.Tasks;
