@@ -13,9 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\JsonDataGenerator\JsonDataGenerator.csproj">
-      <Private>true</Private>
-    </ProjectReference>
+    <ProjectReference Include="..\..\JsonDataGenerator\JsonDataGenerator.csproj" />
     <ProjectReference Include="..\..\Sen.Server\Sen.Server.csproj" />
     <ProjectReference Include="..\Demo.Grains\Demo.Grains.csproj" />
     <ProjectReference Include="..\Demo.Interfaces\Demo.Interfaces.csproj" />

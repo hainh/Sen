@@ -4,14 +4,13 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp3.1</TargetFramework>
   </PropertyGroup>
-  <Target Name="AddRuntimeDependenciesToContent" Condition=" '$(TargetFrameworkIdentifier)' == '.NETCoreApp'" BeforeTargets="GetCopyToOutputDirectoryItems">
+  <Target Name="AddRuntimeDependenciesToContent"
+          Condition=" '$(TargetFrameworkIdentifier)' == '.NETCoreApp'"
+          BeforeTargets="GetCopyToOutputDirectoryItems"
+          DependsOnTargets="GenerateBuildDependencyFile;GenerateBuildRuntimeConfigurationFiles">
     <ItemGroup>
       <ContentWithTargetPath Include="$(ProjectDepsFilePath)" CopyToOutputDirectory="PreserveNewest" TargetPath="$(ProjectDepsFileName)" />
       <ContentWithTargetPath Include="$(ProjectRuntimeConfigFilePath)" CopyToOutputDirectory="PreserveNewest" TargetPath="$(ProjectRuntimeConfigFileName)" />
     </ItemGroup>
-  </Target>
-  <Target Name="DisplayMessages">
-    <Warning Condition="'a' == 'a'" Text="ProjectRuntimeConfigFileNameaaa = $(ProjectRuntimeConfigFileName) // AND !$(ProjectDepsFilePath).Contains('JsonData')" />
-    <Warning Condition="'a' == 'a'" Text="ProjectRuntimeConfigFilePath = $(ProjectRuntimeConfigFilePath)" />
   </Target>
 </Project>
