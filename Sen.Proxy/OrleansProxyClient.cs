@@ -67,8 +67,10 @@ namespace Sen.Proxy
         async Task<bool> RetryFilter(Exception exception)
         {
             attempt++;
-            string msg = $"Cluster client attempt {attempt} failed to connect to cluster.  Exception: {exception}";
+            string msg = $"Cluster client attempt {attempt} failed to connect to cluster.  Exception: {exception.Message}";
+            Console.ForegroundColor = ConsoleColor.Red;
             Console.WriteLine(msg);
+            Console.ResetColor();
             await Task.Delay(TimeSpan.FromSeconds(10));
             return true;
         }

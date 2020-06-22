@@ -38,8 +38,8 @@ function __internalInitSen(Sen){
 		// Copy the properties over onto the new prototype
 		for (var name in prop) {
 		  // Check if we're overwriting an existing function
-		  prototype[name] = typeof prop[name] == "function" &&
-			typeof _super[name] == "function" && fnTest.test(prop[name]) ?
+		  prototype[name] = typeof prop[name] == 'function' &&
+			typeof _super[name] == 'function' && fnTest.test(prop[name]) ?
 			(function(name, fn){
 				return function() {
 					var tmp = this._super;
@@ -59,9 +59,10 @@ function __internalInitSen(Sen){
 			prop[name];
 		}
 		
-		var e = `// The dummy class constructor
+		// The dummy class constructor
+		// All construction is actually done in the init method
+		var e = `
 		var ctor = function ${newClassName}() {
-			// All construction is actually done in the init method
 			if ( !initializing && this.init )
 				this.init.apply(this, arguments);
 		}`;
@@ -113,7 +114,7 @@ function __internalInitSen(Sen){
 
 		/**
 		* Peer to connect to server.
-		* Set or override "onStatusChanged(statusCode)" to handle status changed event.
+		* Set or override 'onStatusChanged(statusCode)' to handle status changed event.
 		* Call handleMessage(messageType, handler) to register message handler.
 		*/
 		Sen.Client = Class.extend({
@@ -135,7 +136,7 @@ function __internalInitSen(Sen){
 				this_.isConnecting = 1;
 
 				var socket = this_.socket = new WebSocket(uri);
-				socket.binaryType = "arraybuffer";
+				socket.binaryType = 'arraybuffer';
 
 				socket.onopen = (function onopen(ev, ex) {
 					Sen.Logger.debug('Connected', ev, ex);
@@ -145,14 +146,14 @@ function __internalInitSen(Sen){
 				}).bind(this);
 
 				socket.onclose = (function onclose(ev) {
-					Sen.Logger.debug('Disconnected with code', ev.code, ev);
+					Sen.Logger.warn('Disconnected with code', ev.code, ev);
 					this.onStatusChanged(Status.DISCONNECTED);
 					this.isConnected = 0;
 					this.isConnecting = 0;
 				}).bind(this);
 
 				socket.onerror = function onerror(ev) {
-					Sen.Logger.debug('WebSocket Error', ev);
+					Sen.Logger.error('WebSocket Error', ev);
 				};
 
 				socket.onmessage = this.__onMessage.bind(this);
@@ -253,13 +254,13 @@ function __internalInitSen(Sen){
 					}
 				}
 				var json = JSON.stringify(cloneObj, null, '\t');
-				var matches = json.match(/".*":/gm);
+				var matches = json.match(/'.*':/gm);
 				if (!matches) {
 					return json;
 				}
 				for (var i = matches.length - 1; i >= 0; i--) {
 					var key = matches[i],
-						newKey = key.replace(/"/g, '');
+						newKey = key.replace(/'/g, '');
 					json = json.replace(key, newKey);
 				}
 				return json;
@@ -418,13 +419,13 @@ function __internalInitSen(Sen){
  * js-logger may be freely distributed under the MIT license.
  */
 (function (global) {
-	"use strict";
+	'use strict';
 
 	// Top level module for the global, static logger instance.
 	var Logger = { };
 
 	// For those that are at home that are keeping score.
-	Logger.VERSION = "1.2.0";
+	Logger.VERSION = '1.2.0';
 
 	// Function which handles all incoming log messages.
 	var logHandler;
@@ -478,7 +479,7 @@ function __internalInitSen(Sen){
 		// Changes the current logging level for the logging instance.
 		setLevel: function (newLevel) {
 			// Ensure the supplied Level object looks valid.
-			if (newLevel && "value" in newLevel) {
+			if (newLevel && 'value' in newLevel) {
 				this.context.filterLevel = newLevel;
 			}
 		},
@@ -586,12 +587,12 @@ function __internalInitSen(Sen){
 		options.formatter = options.formatter || function defaultMessageFormatter(messages, context) {
 			// Prepend the logger's name to the log message for easy identification.
 			if (context.name) {
-				messages.unshift("[" + context.name + "]");
+				messages.unshift('[' + context.name + ']');
 			}
 		};
 
 		// Check for the presence of a logger.
-		if (typeof console === "undefined") {
+		if (typeof console === 'undefined') {
 			return;
 		}
 
@@ -668,28 +669,20 @@ function __internalInitSen(Sen){
 	}
 }(this));
 
-Sen.Logger = SLogger.get("Sen");
+Sen.Logger = SLogger.get('Sen');
 SLogger.useDefaults({
 	defaultLevel: SLogger.DEBUG,
 	formatter: function(message, context) {
 		var now = new Date();
-		var tag = "[" + ("0" + now.getHours()).substr(-2) + ":" +
-				("0" + now.getMinutes()).substr(-2) + ":" + 
-				("0" + now.getSeconds()).substr(-2) + "." + 
-				("000" + now.getMilliseconds()).substr(-4);
-		if (context.name) {
-			tag += " " + context.name;
-		}
+		var tag = '[' + context.name + ' ' + context.level.name + ']';
 
-		tag += " " + context.level.name + "]";
-
-		if (typeof window === "undefined") {
-			var messageBulk = tag + " " + message.join("\r\n");
+		if (typeof window === 'undefined') {
+			var messageBulk = tag + ' ' + message.join('\r\n');
 			message[0] = messageBulk;
 			message.length = 1;
 		} else {
 			message.unshift(tag);
-			if (context.trace && Error) {
+			if (context.trace && Error && context.level.value < SLogger.WARN.value) {
 				var stack = new Error().stack;
 				if (stack) {
 					message.push('\n');

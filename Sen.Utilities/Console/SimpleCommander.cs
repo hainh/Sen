@@ -55,76 +55,32 @@ namespace Sen.Utilities.Console
             }
         }
 
-        [CommandHelper("Print this help")]
-        public Task Help()
+        [CommandHelper("Print help for all commands")]
+        protected void Help()
         {
             WriteLine("All available commands:");
             MethodInfo[] methods = this.GetAllCommands();
             foreach (var method in methods)
             {
-                Write("- ");
-                ForegroundColor = ConsoleColor.Cyan;
-                Write(method.Name);
-                ResetColor();
-                CommandHelperAttribute helper = method.GetCustomAttribute<CommandHelperAttribute>();
-                if (helper != null)
+                Helper.PrintHelp(method, method == methods[^1]);
+            }
+        }
+
+        [CommandHelper("Print help for a command")]
+        protected void Help([ParameterHelper("Name of command (case-insensitive).")]string command)
+        {
+            MethodInfo[] methods = this.GetAllCommands().Where(method => method.Name.Equals(command, StringComparison.OrdinalIgnoreCase)).ToArray();
+            if (methods.Length == 0)
+            {
+                Write("No command name " + command);
+            }
+            else
+            {
+                foreach (var method in methods)
                 {
-                    Write(": ");
-                    Write(helper.HelpText ?? string.Empty);
-                }
-                ParameterInfo[] parameterInfos = method.GetParameters();
-                IEnumerable<ParameterHelperAttribute> parameterHelpers = method.GetCustomAttributes<ParameterHelperAttribute>();
-                if (parameterHelpers.Count() > 0)
-                {
-                    WriteLine();
-                    int count = 0;
-                    foreach (ParameterHelperAttribute ah in parameterHelpers)
-                    {
-                        if (parameterInfos.Length <= count)
-                        {
-                            break;
-                        }
-                        ForegroundColor = ConsoleColor.DarkGray;
-                        Write("  arg{0}", count);
-                        ForegroundColor = ConsoleColor.Magenta;
-                        Write(" {0}", parameterInfos[count].Name);
-                        ResetColor();
-                        if (!string.IsNullOrWhiteSpace(ah.HelpText))
-                        {
-                            WriteLine(": {0}", ah.HelpText);
-                        }
-                        count++;
-                    }
-                }
-                else if (parameterInfos.Length > 0)
-                {
-                    WriteLine();
-                    foreach (ParameterInfo parameter in parameterInfos)
-                    {
-                        ParameterHelperAttribute parameterHelper =
-                            parameter.GetCustomAttributes<ParameterHelperAttribute>().FirstOrDefault();
-                        string helperText = parameterHelper?.HelpText ?? null;
-                        ForegroundColor = ConsoleColor.DarkGray;
-                        Write("  arg{0}", parameter.Position);
-                        ForegroundColor = ConsoleColor.Magenta;
-                        Write(" {0}", parameter.Name);
-                        ResetColor();
-                        if (helperText != null)
-                        {
-                            WriteLine(": {0}", helperText);
-                        }
-                        else
-                        {
-                            WriteLine();
-                        }
-                    }
-                }
-                if (parameterInfos.Length == 0 && parameterHelpers.Count() == 0 && method != methods[^1])
-                {
-                    WriteLine();
+                    Helper.PrintHelp(method, method == methods[^1]);
                 }
             }
-            return Task.CompletedTask;
         }
     }
 
@@ -144,6 +100,71 @@ namespace Sen.Utilities.Console
             return method.Name != nameof(SimpleCommander.RunAsync)
                 && method.DeclaringType != objectType
                 && method.GetParameters().All(p => p.ParameterType == typeof(string));
+        }
+
+        internal static void PrintHelp(MethodInfo method, bool lastMethod)
+        {
+            Write("- ");
+            ForegroundColor = ConsoleColor.Cyan;
+            Write(method.Name);
+            ResetColor();
+            CommandHelperAttribute helper = method.GetCustomAttribute<CommandHelperAttribute>();
+            if (helper != null)
+            {
+                Write(": ");
+                Write(helper.HelpText ?? string.Empty);
+            }
+            ParameterInfo[] parameterInfos = method.GetParameters();
+            IEnumerable<ParameterHelperAttribute> parameterHelpers = method.GetCustomAttributes<ParameterHelperAttribute>();
+            if (parameterHelpers.Count() > 0)
+            {
+                WriteLine();
+                int count = 0;
+                foreach (ParameterHelperAttribute ah in parameterHelpers)
+                {
+                    if (parameterInfos.Length <= count)
+                    {
+                        break;
+                    }
+                    ForegroundColor = ConsoleColor.DarkGray;
+                    Write("  arg{0}", count);
+                    ForegroundColor = ConsoleColor.Magenta;
+                    Write(" {0}", parameterInfos[count].Name);
+                    ResetColor();
+                    if (!string.IsNullOrWhiteSpace(ah.HelpText))
+                    {
+                        WriteLine(": {0}", ah.HelpText);
+                    }
+                    count++;
+                }
+            }
+            else if (parameterInfos.Length > 0)
+            {
+                WriteLine();
+                foreach (ParameterInfo parameter in parameterInfos)
+                {
+                    ParameterHelperAttribute parameterHelper =
+                        parameter.GetCustomAttributes<ParameterHelperAttribute>().FirstOrDefault();
+                    string helperText = parameterHelper?.HelpText ?? null;
+                    ForegroundColor = ConsoleColor.DarkGray;
+                    Write("  arg{0}", parameter.Position);
+                    ForegroundColor = ConsoleColor.Magenta;
+                    Write(" {0}", parameter.Name);
+                    ResetColor();
+                    if (helperText != null)
+                    {
+                        WriteLine(": {0}", helperText);
+                    }
+                    else
+                    {
+                        WriteLine();
+                    }
+                }
+            }
+            if (!lastMethod && parameterInfos.Length == 0 && parameterHelpers.Count() == 0)
+            {
+                WriteLine();
+            }
         }
     }
 

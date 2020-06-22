@@ -17,11 +17,13 @@ namespace JsonDataGenerator
         static readonly string[] ExcludeAssemblyNames = new[]
         {
             "DotNetty.",
+            "JsonDataGenerator",
             "MessagePack",
             "Microsoft.",
             "Newtonsoft.Json",
             "NLog",
             "Orleans.",
+            "OrleansProviders",
             "Sen.Interfaces",
             "Sen.Utilities",
             "Sen.Grains",
@@ -41,6 +43,7 @@ namespace JsonDataGenerator
             var assemblies = fileNames
                 .Where(fileName => !ExcludeAssemblyNames.Any(excludeFile => Path.GetFileNameWithoutExtension(fileName).Contains(excludeFile)))
                 .Select(fileName => Assembly.LoadFrom(fileName)).ToArray();
+            Console.WriteLine("Searching Message types in {0} dlls: {1}", assemblies.Length, string.Join(", ", assemblies.Select(assembly => Path.GetFileName(assembly.Location))));
             List<Class> Types = new List<Class>(1000);
             List<Type> allDataTypes = new List<Type>(1000);
             var rootUnionInterfaces = new List<Type>();
