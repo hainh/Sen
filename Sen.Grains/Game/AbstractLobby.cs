@@ -8,7 +8,7 @@ namespace Sen
     public delegate void RoomChanged(IRoom room);
 
     /// <inheritdoc/>
-    public abstract class AbstractLobby<TGrainState> : AbstractRoom<TGrainState>, ILobby
+    public abstract class AbstractLobby<TGrainState> : AbstractRoom<TGrainState>, ILobby where TGrainState : ILobbyState
     {
         public event RoomChanged RoomAdded;
 
@@ -18,10 +18,12 @@ namespace Sen
 
         public AbstractLobby()
         {
-            _playerLimit = int.MaxValue;
+            State.PlayerLimit = int.MaxValue;
         }
 
         public ValueTask<IList<IRoom>> GetRooms() => new ValueTask<IList<IRoom>>(_rooms);
+
+        public override ValueTask<bool> IsLobby() => new ValueTask<bool>(true);
 
         public async ValueTask<IRoom> FindRoom(string roomName)
         {
@@ -30,6 +32,14 @@ namespace Sen
                 if (await room.GetRoomName() == roomName)
                 {
                     return room;
+                }
+                if (await room.IsLobby())
+                {
+                    var found = await ((ILobby)room).FindRoom(roomName);
+                    if (found != null)
+                    {
+                        return found;
+                    }
                 }
             }
             return null;

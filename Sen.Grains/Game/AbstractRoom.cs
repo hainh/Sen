@@ -12,15 +12,8 @@ namespace Sen
     /// handle each message type from player
     /// </para>
     /// </summary>
-    public abstract class AbstractRoom<TGrainState> : BaseScheduleGrain<TGrainState>, IRoom
+    public abstract class AbstractRoom<TGrainState> : BaseScheduleGrain<TGrainState>, IRoom where TGrainState : IRoomState
     {
-        protected long _matchId;
-        protected string _roomName;
-        protected string _password;
-        protected int _playerLimit;
-        protected ILobby _parent;
-        protected IDictionary<string, IPlayer> _players;
-
         public event PlayerChange PlayerJoined;
 
         public event PlayerChange PlayerLeft;
@@ -29,21 +22,21 @@ namespace Sen
 
         public event PlayerChange PlayerLeaving;
 
-        public ValueTask<long> GetMatchId() => new ValueTask<long>(_matchId);
+        public ValueTask<long> GetMatchId() => new ValueTask<long>(State.MatchId);
 
-        public ValueTask<string> GetRoomName() => new ValueTask<string>(_roomName);
+        public ValueTask<string> GetRoomName() => new ValueTask<string>(State.RoomName);
 
-        public ValueTask<string> GetPassword() => new ValueTask<string>(_password);
+        public ValueTask<string> GetPassword() => new ValueTask<string>(State.Password);
 
-        public ValueTask<int> GetPlayerLimit() => new ValueTask<int>(_playerLimit);
+        public ValueTask<int> GetPlayerLimit() => new ValueTask<int>(State.PlayerLimit);
 
-        public ValueTask<ILobby> GetParent() => new ValueTask<ILobby>(_parent);
+        public ValueTask<ILobby> GetParent() => new ValueTask<ILobby>(State.Parent);
 
-        public ValueTask<bool> IsLobby() => new ValueTask<bool>(false);
+        public virtual ValueTask<bool> IsLobby() => new ValueTask<bool>(false);
 
-        public ValueTask<bool> IsFull() => new ValueTask<bool>(_players.Count >= _playerLimit);
+        public ValueTask<bool> IsFull() => new ValueTask<bool>(State.Players.Count >= State.PlayerLimit);
 
-        public ValueTask<ICollection<IPlayer>> GetPlayers() => new ValueTask<ICollection<IPlayer>>(_players.Values);
+        public ValueTask<ICollection<IPlayer>> GetPlayers() => new ValueTask<ICollection<IPlayer>>(State.Players.Values);
 
         /// <summary>
         /// Handle a message object. Inherited class create its own overloaded version to
@@ -71,10 +64,10 @@ namespace Sen
         {
             if (!IsFull().Result)
             {
-                if (!_players.ContainsKey(playerName))
+                if (!State.Players.ContainsKey(playerName))
                 {
                     OnPlayerJoining(player);
-                    _players.Add(playerName, player);
+                    State.Players.Add(playerName, player);
                     OnPlayerJoined(player);
                     return new ValueTask<bool>(true);
                 }
@@ -85,12 +78,12 @@ namespace Sen
 
         protected virtual async ValueTask<bool> RemovePlayer(IPlayer player)
         {
-            return _players.Remove(await player.GetName());
+            return State.Players.Remove(await player.GetName());
         }
 
         public ValueTask SetParent(ILobby room)
         {
-            _parent = room;
+            State.Parent = room;
             return default;
         }
 

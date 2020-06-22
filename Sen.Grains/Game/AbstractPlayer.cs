@@ -20,18 +20,15 @@ namespace Sen
     /// </summary>
     /// <typeparam name="TUnionData">MessagePack's Union interface root of all message types</typeparam>
     /// <typeparam name="TGrainState">Grain state</typeparam>
-    public abstract class AbstractPlayer<TUnionData, TGrainState> : BaseScheduleGrain<TGrainState>, IPlayer
+    public abstract class AbstractPlayer<TUnionData, TGrainState> : BaseScheduleGrain<TGrainState>, IPlayer where TGrainState : IPlayerState
          where TUnionData : IUnionData
     {
         public const string ProxyStream = "ProxyStream";
         public const string SMSProvider = "SMSProvider";
 
-        protected IRoom _room;
-        protected bool _isBot;
-
         public IPEndPoint LocalAddress { get; private set; }
         public IPEndPoint RemoteAddress { get; private set; }
-        public ValueTask<IRoom> GetRoom() => new ValueTask<IRoom>(_room);
+        public ValueTask<IRoom> GetRoom() => new ValueTask<IRoom>(State.Room);
 
         public abstract string Name { get; }
 
@@ -41,11 +38,11 @@ namespace Sen
 
         public ValueTask SetRoomJoined(IRoom room)
         {
-            _room = room;
+            State.Room = room;
             return default;
         }
 
-        public ValueTask<bool> IsBot() => new ValueTask<bool>(_isBot);
+        public ValueTask<bool> IsBot() => new ValueTask<bool>(State.IsBot);
 
         /// <summary>
         /// Get a game world instance.
@@ -77,6 +74,7 @@ namespace Sen
 
             ILobby gameWorld = GetGameWorld();
             await gameWorld.JoinRoom(this, Name);
+            await SetRoomJoined(gameWorld);
             return true;
         }
 
@@ -91,9 +89,9 @@ namespace Sen
         /// <returns>A <see cref="IUnionData"/> will be serialized and returned to game client or null to send nothing</returns>
         protected async ValueTask<TUnionData> HandleMessage(TUnionData message)
         {
-            if (_room != null)
+            if (State.Room != null)
             {
-                return (TUnionData)await _room.HandleRoomMessage(message, this);
+                return (TUnionData)await State.Room.HandleRoomMessage(message, this);
             }
             return default;
         }

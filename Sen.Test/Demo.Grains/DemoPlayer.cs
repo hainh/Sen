@@ -22,7 +22,7 @@ namespace Demo.Grains
 
         protected override ILobby GetGameWorld()
         {
-            return GrainFactory.GetGrain<IGameWorld>("");
+            return GrainFactory.GetGrain<IGameWorld>("GameWorld");
         }
 
         protected override ValueTask<bool> CheckAccessToken(string accessToken)
