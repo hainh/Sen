@@ -10,20 +10,49 @@ namespace Sen.Utilities.Console
 {
     public class SimpleCommander : IConsoleCommand
     {
+        string quitSecret;
+        
         public async Task RunAsync()
         {
+            quitSecret = Sen.Utilities.ThreadSafeRandom.Current.Next(1000, 9999).ToString();
             ForegroundColor = ConsoleColor.Green;
             WriteLine("Commander is running. Type \"Help\" for help of available commands.");
             ResetColor();
             MethodInfo[] methods = this.GetAllCommands();
+            Regex regex = new Regex("[^\b]\b{1}");
+            int length;
             while (true)
             {
                 Write(">> ");
-                string[] commandParams = ReadLine().ToLower().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                string line = ReadLine();
+                do
+                {
+                    length = line.Length;
+                    line = regex.Replace(line, string.Empty);
+                }
+                while (length != line.Length);
+                string[] commandParams = line
+                    .ToLower()
+                    .Split(new char[] {' '}, StringSplitOptions.RemoveEmptyEntries);
+                if  (commandParams.Length == 1 && commandParams[0] == quitSecret)
+                {
+                    ForegroundColor = ConsoleColor.DarkRed;
+                    WriteLine("Closed.");
+                    ResetColor();
+                    return;
+                }
+                if (commandParams.Length == 0)
+                {
+                    continue;
+                }
                 MethodInfo command = methods.FirstOrDefault(method => 
                         method.Name.ToLower() == commandParams[0]
                         && method.GetParameters().Length == commandParams.Length - 1);
-
+                
+                if (TreatControlCAsInput)
+                {
+                    WriteLine();
+                }
                 if (command == null)
                 {
                     Write("Not recognized command: ");
