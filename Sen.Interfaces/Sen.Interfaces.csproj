@@ -1,19 +1,19 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <RootNamespace>Sen</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="MessagePack" Version="2.1.115" />
-    <PackageReference Include="MessagePackAnalyzer" Version="2.1.115" />
-    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="3.0.0" />
-    <PackageReference Include="Microsoft.Orleans.CodeGenerator.MSBuild" Version="3.2.0">
+    <PackageReference Include="MessagePack" Version="2.3.85" />
+    <PackageReference Include="MessagePackAnalyzer" Version="2.3.85" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="6.0.0" />
+    <PackageReference Include="Microsoft.Orleans.CodeGenerator.MSBuild" Version="3.6.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.Orleans.Core.Abstractions" Version="3.2.0" />
+    <PackageReference Include="Microsoft.Orleans.Core.Abstractions" Version="3.6.0" />
   </ItemGroup>
 
   <ItemGroup>

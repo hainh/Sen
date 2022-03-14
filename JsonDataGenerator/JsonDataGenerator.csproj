@@ -2,12 +2,9 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
   </PropertyGroup>
-  <Target Name="AddRuntimeDependenciesToContent"
-          Condition=" '$(TargetFrameworkIdentifier)' == '.NETCoreApp'"
-          BeforeTargets="GetCopyToOutputDirectoryItems"
-          DependsOnTargets="GenerateBuildDependencyFile;GenerateBuildRuntimeConfigurationFiles">
+  <Target Name="AddRuntimeDependenciesToContent" Condition=" '$(TargetFrameworkIdentifier)' == '.NETCoreApp'" BeforeTargets="GetCopyToOutputDirectoryItems" DependsOnTargets="GenerateBuildDependencyFile;GenerateBuildRuntimeConfigurationFiles">
     <ItemGroup>
       <ContentWithTargetPath Include="$(ProjectDepsFilePath)" CopyToOutputDirectory="PreserveNewest" TargetPath="$(ProjectDepsFileName)" />
       <ContentWithTargetPath Include="$(ProjectRuntimeConfigFilePath)" CopyToOutputDirectory="PreserveNewest" TargetPath="$(ProjectRuntimeConfigFileName)" />

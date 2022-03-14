@@ -1,4 +1,4 @@
-this.Sen = {};
+var Sen = {};
 this.initSen = function(throwOnDataError) {
 	if (typeof MessageTypes === 'undefined') {
 		throw 'MessageTypes is missing. Generate one in Server project.'

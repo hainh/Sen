@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <StartupObject></StartupObject>
     <ApplicationIcon />
     <OutputType>Library</OutputType>
@@ -9,20 +9,19 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Orleans.OrleansProviders" Version="3.2.0" />
-    <PackageReference Include="NLog" Version="4.7.0" />
-    <PackageReference Include="NLog.Extensions.Logging" Version="1.6.2" />
-    <PackageReference Include="NLog.Schema" Version="4.7.0" />
+    <PackageReference Include="DotNetty.Buffers" Version="0.7.2" />
+    <PackageReference Include="DotNetty.Codecs" Version="0.7.2" />
+    <PackageReference Include="DotNetty.Codecs.Http" Version="0.7.2" />
+    <PackageReference Include="DotNetty.Common" Version="0.7.2" />
+    <PackageReference Include="DotNetty.Handlers" Version="0.7.2" />
+    <PackageReference Include="DotNetty.Transport" Version="0.7.2" />
+    <PackageReference Include="DotNetty.Transport.Libuv" Version="0.7.2" />
+    <PackageReference Include="Microsoft.Orleans.OrleansProviders" Version="3.6.0" />
+    <PackageReference Include="NLog.Extensions.Logging" Version="1.7.4" />
+    <PackageReference Include="NLog.Schema" Version="4.7.14" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\DotNetty\src\DotNetty.Buffers\DotNetty.Buffers.csproj" />
-    <ProjectReference Include="..\..\DotNetty\src\DotNetty.Codecs.Http\DotNetty.Codecs.Http.csproj" />
-    <ProjectReference Include="..\..\DotNetty\src\DotNetty.Codecs\DotNetty.Codecs.csproj" />
-    <ProjectReference Include="..\..\DotNetty\src\DotNetty.Common\DotNetty.Common.csproj" />
-    <ProjectReference Include="..\..\DotNetty\src\DotNetty.Handlers\DotNetty.Handlers.csproj" />
-    <ProjectReference Include="..\..\DotNetty\src\DotNetty.Transport.Libuv\DotNetty.Transport.Libuv.csproj" />
-    <ProjectReference Include="..\..\DotNetty\src\DotNetty.Transport\DotNetty.Transport.csproj" />
     <ProjectReference Include="..\Sen.Interfaces\Sen.Interfaces.csproj" />
   </ItemGroup>
 
