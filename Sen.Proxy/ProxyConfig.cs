@@ -32,6 +32,14 @@ namespace Sen.Proxy
     public class Listener : JsonConfig<Listener>
     {
         public int Port { get; set; }
+
+        public bool UseTLS => !string.IsNullOrWhiteSpace(CertificateName);
+
+        [DefaultValue(StoreLocation.CurrentUser)]
+        public StoreLocation StoreLocation { get; set; }
+
+        [DefaultValue("")]
+        public string CertificateName { get; set; }
     }
 
     public class UdpListener : Listener
@@ -45,12 +53,5 @@ namespace Sen.Proxy
 
     public class WebSocketListener : TcpListener
     {
-        public bool UseTLS => !string.IsNullOrWhiteSpace(CertificateName);
-
-        [DefaultValue(StoreLocation.CurrentUser)]
-        public StoreLocation StoreLocation { get; set; }
-
-        [DefaultValue("")]
-        public string CertificateName { get; set; }
     }
 }

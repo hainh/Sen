@@ -11,7 +11,7 @@ namespace DemoProxy
         public static async Task<int> Main(string[] args)
         {
             return await new OrleansProxyClient<IDemoPlayer>()
-                .RunOrleansProxyClient(new DotNettyProxy(), new Commander());
+                .RunOrleansProxyClient(new SenProxy(), new Commander());
         }
     }
 

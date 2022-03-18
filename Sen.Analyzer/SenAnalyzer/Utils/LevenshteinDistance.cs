@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace SenAnalyzer
+namespace SenAnalyzer.Utils
 {
     using System;
 

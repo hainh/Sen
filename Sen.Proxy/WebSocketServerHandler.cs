@@ -16,9 +16,26 @@ using static DotNetty.Codecs.Http.HttpVersion;
 
 namespace Sen.Proxy
 {
+    public class ClientObserverWs : IClientObserver
+    {
+        private readonly IChannelHandlerContext context;
+
+        public ClientObserverWs(IChannelHandlerContext ctx)
+        {
+            context = ctx;
+        }
+
+        public void ReceiveData(Immutable<byte[]> data)
+        {
+            var result = Unpooled.WrappedBuffer(data.Value);
+            var f = new BinaryWebSocketFrame(result);
+            context.WriteAndFlushAsync(f);
+        }
+    }
+
     public class WebSocketServerHandler : SimpleChannelInboundHandler<object>
     {
-        static readonly ILogger<WebSocketServerHandler> logger = DotNettyProxy.LoggerFactory.CreateLogger<WebSocketServerHandler>();
+        static readonly ILogger<WebSocketServerHandler> logger = SenProxy.LoggerFactory.CreateLogger<WebSocketServerHandler>();
         readonly IPlayerFactory _playerFactory;
         readonly UseExternalProxy _useExternalProxy;
         const string WebsocketPath = "/websocket";
@@ -80,16 +97,15 @@ namespace Sen.Proxy
                     {
                         remoteIpEndPoint = GetRealRemoteEndPoint(req, remoteIpEndPoint);
                     }
+
+                    ClientObserverWs clientObserverWs = new(ctx);
                     //Create the grain to communicate with the server(silo)
                     _proxyConnection = _playerFactory.CreatePlayer(uriComponent[1]);
-                    bool proxySuccess = await _proxyConnection.InitConnection(ctx.Channel.LocalAddress, remoteIpEndPoint, uriComponent[1], uriComponent[2]).AsTask();
-                    if (proxySuccess)
+                    IClientObserver observer = await _playerFactory.CreateObserver(clientObserverWs);
+                    if (await _proxyConnection.InitConnection(ctx.Channel.LocalAddress.ToString(), remoteIpEndPoint.ToString(),
+                         username: uriComponent[1], accessToken: uriComponent[2], observer))
                     {
                         await _handshaker.HandshakeAsync(ctx.Channel, req);
-                    }
-                    else
-                    {
-
                     }
                 }
             }
@@ -135,7 +151,7 @@ namespace Sen.Proxy
             {
                 var buffer = new byte[frame.Content.ReadableBytes];
                 frame.Content.ReadBytes(buffer);
-                var dataWriteBack = await _proxyConnection.Read(buffer.AsImmutable());
+                var dataWriteBack = await _proxyConnection.OnReceivedData(buffer.AsImmutable());
                 if (dataWriteBack.Value != null)
                 {
                     var result = Unpooled.WrappedBuffer(dataWriteBack.Value);

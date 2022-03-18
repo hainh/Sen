@@ -365,9 +365,12 @@ function __internalInitSen(Sen){
 		if (!typeDesc || typeDesc.unionCode < 0) {
 			throw `Type ${typeDesc ? 'MessageTypes.' : ''}${dataType} is not supported to send to server.`;
 		}
-		var msgpackData = [0, [typeDesc.unionCode, []]];
-		getValues(message, msgpackData[1][1], MessageTypes);
-		return MessagePack.encode(msgpackData, {forceFloat32: typeDesc.forceFloat32});
+		var msgpackData = [typeDesc.unionCode, []];
+		getValues(message, msgpackData[1], MessageTypes);
+		var rawData = MessagePack.encode(msgpackData, { forceFloat32: typeDesc.forceFloat32 });
+		var returnedData = new Uint8Array(rawData.length + 2);
+		returnedData.set(rawData, 2); // Fake network option
+		return returnedData;
 
 		function getValues(message, msgpackData, MessageTypes) {
 			var {values} = MessageTypes.__innerTypes__[message.constructor.name];
@@ -386,12 +389,15 @@ function __internalInitSen(Sen){
 		}
 	}
 
-	/*Deserialize a byte buffer to a message object*/
-	function deserialize (buffer) {
-		var obj = MessagePack.decode(buffer);
-		var unionCode = obj[1][0];
+	/**
+	 * Deserialize a byte buffer to a message object
+	 * @param {Uint8Array} buffer
+	 */
+	function deserialize(buffer) {
+		var obj = MessagePack.decode(buffer.subarray(2));
+		var unionCode = obj[0];
 		var unionType = MessageTypes.__innerTypesByCode__[unionCode + ''];
-		return setValue(obj[1][1], MessageTypes[unionType.className](), MessageTypes);
+		return setValue(obj[1], MessageTypes[unionType.className](), MessageTypes);
 
 		function setValue(msgpackData, destObject, MessageTypes) {
 			var name = destObject.constructor.name;

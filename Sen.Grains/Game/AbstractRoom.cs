@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using Orleans;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Sen
@@ -22,21 +23,24 @@ namespace Sen
 
         public event PlayerChange PlayerLeaving;
 
-        public ValueTask<long> GetMatchId() => new ValueTask<long>(State.MatchId);
+        public ValueTask<long> GetMatchId() => new(State.MatchId);
 
-        public ValueTask<string> GetRoomName() => new ValueTask<string>(State.RoomName);
+        public ValueTask<string> GetRoomName() => new(State.RoomName);
 
-        public ValueTask<string> GetPassword() => new ValueTask<string>(State.Password);
+        public ValueTask<string> GetPassword() => new(State.Password);
 
-        public ValueTask<int> GetPlayerLimit() => new ValueTask<int>(State.PlayerLimit);
+        public ValueTask<int> GetPlayerLimit() => new(State.PlayerLimit);
 
-        public ValueTask<ILobby> GetParent() => new ValueTask<ILobby>(State.Parent);
+        public ValueTask<ILobby> GetParent() => new(State.Parent);
 
-        public virtual ValueTask<bool> IsLobby() => new ValueTask<bool>(false);
+        public virtual ValueTask<bool> IsLobby() => new(false);
 
-        public ValueTask<bool> IsFull() => new ValueTask<bool>(State.Players.Count >= State.PlayerLimit);
+        public ValueTask<bool> IsFull() => new(State.Players.Count >= State.PlayerLimit);
 
-        public ValueTask<ICollection<IPlayer>> GetPlayers() => new ValueTask<ICollection<IPlayer>>(State.Players.Values);
+        public ValueTask<ICollection<IPlayer>> GetPlayers() => new(State.Players.Values);
+
+        private IRoom _me = null;
+        protected IRoom Me => _me ??= this.AsReference<IRoom>();
 
         /// <summary>
         /// Handle a message object. Inherited class create its own overloaded version to
@@ -44,36 +48,36 @@ namespace Sen
         /// </summary>
         /// <returns>A <see cref="IUnionData"/> will be serialized and returned to game client or null to send nothing</returns>
 #pragma warning disable IDE0060 // Remove unused parameter
-        protected ValueTask<IUnionData> HandleMessage(IUnionData message, IPlayer player) => default;
+        protected ValueTask<IUnionData> HandleMessage(IUnionData message, IPlayer sender, NetworkOptions networkOptions) => default;
 #pragma warning restore IDE0060 // Remove unused parameter
 
         /// <summary>
         /// Body of this method must be
         /// <code>return HandleMessage((dynamic)message, player);</code>
-        /// to call appropriate <see cref="HandleMessage"/> overload for each message type.
+        /// to call appropriate <see cref="HandleMessage(IUnionData, IPlayer, NetworkOptions)"/> overload for each message type.
         /// </summary>
         /// <param name="message"></param>
         /// <param name="player"></param>
         /// <returns></returns>
-        public ValueTask<IUnionData> HandleRoomMessage(IUnionData message, IPlayer player)
+        public ValueTask<IUnionData> HandleRoomMessage(IUnionData message, IPlayer sender, NetworkOptions networkOptions)
         {
-            return ((dynamic)this).HandleMessage((dynamic)message, player);
+            return ((dynamic)this).HandleMessage((dynamic)message, sender, networkOptions);
         }
 
-        public ValueTask<bool> JoinRoom(IPlayer player, string playerName)
+        public async ValueTask<bool> JoinRoom(IPlayer player, string playerName)
         {
-            if (!IsFull().Result)
+            if (await IsFull())
             {
                 if (!State.Players.ContainsKey(playerName))
                 {
                     OnPlayerJoining(player);
                     State.Players.Add(playerName, player);
                     OnPlayerJoined(player);
-                    return new ValueTask<bool>(true);
+                    return true;
                 }
             }
 
-            return new ValueTask<bool>(false);
+            return false;
         }
 
         protected virtual async ValueTask<bool> RemovePlayer(IPlayer player)

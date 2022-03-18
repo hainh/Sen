@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>A simple object pool implementation.</Description>
+    <TargetFrameworks>net6.0</TargetFrameworks>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <PackageTags>pooling</PackageTags>
+    <IsAspNetCoreApp>true</IsAspNetCoreApp>
+    <Trimmable>true</Trimmable>
+    <AssemblyName>$(MSBuildProjectName)1</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Microsoft.Extensions.ObjectPool.Tests" />
+  </ItemGroup>
+
+</Project>

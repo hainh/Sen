@@ -7,18 +7,24 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
+using SenAnalyzer.Utils;
 
 namespace SenAnalyzer
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
     public class HandleMessageMethodAnalyzer : DiagnosticAnalyzer
     {
-        public const string RenameToHandleMessageDiagnosticId = "SenHandleMessageRename";
-        public const string HandleMessageSignatureReturnTypeDiagnosticId = "SenHandleMessageSignatureReturnType";
-        public const string HandleMessageSignatureArg0DiagnosticId = "SenHandleMessageSignatureArg0";
-        public const string HandleMessageSignatureArg1DiagnosticId = "SenHandleMessageSignatureArg1";
-        public const string HandleMessageSignatureArgLengthDiagnosticId = "SenHandleMessageSignatureArgLength";
         public const string HandleMessage = "HandleMessage";
+        public const string RenameToHandleMessageDiagnosticId = $"Sen{HandleMessage}Rename";
+        public const string HandleMessageSignatureReturnTypeDiagnosticId = $"Sen{HandleMessage}SignatureReturnType";
+        public const string HandleMessageSignatureArg0DiagnosticId = $"Sen{HandleMessage}SignatureArg0";
+        public const string HandleMessageSignatureArg1DiagnosticId = $"Sen{HandleMessage}SignatureArg1";
+        public const string HandleMessageSignatureArgLengthDiagnosticId = $"Sen{HandleMessage}SignatureArgLength";
+        public const string SenPlayerClassName = "AbstractPlayer";
+        public const string SenRoomClassName = "AbstractRoom";
+        public const string NetworkOptions = "NetworkOptions";
+        public const string SenInterfaces = "Sen.Interfaces";
+        public const string SenGrains = "Sen.Grains";
 
         // You can change these strings in the Resources.resx file. If you do not want your analyzer to be localize-able, you can use regular strings for Title and MessageFormat.
         // See https://github.com/dotnet/roslyn/blob/master/docs/analyzers/Localizing%20Analyzers.md for more on localization
@@ -27,48 +33,48 @@ namespace SenAnalyzer
 
         private static readonly DiagnosticDescriptor HandleMessageNameRule = new DiagnosticDescriptor(
             RenameToHandleMessageDiagnosticId,
-            "Rename HandleMessage method name",
+            $"Rename {HandleMessage} method name",
             $@"Method ""{{0}}"" seem likes a message handler you may want to rename it ""{HandleMessage}""",
             CategoryNaming,
             DiagnosticSeverity.Warning,
             isEnabledByDefault: true,
-            description: "HandleMessage method name may be miss spelled");
+            description: $"{HandleMessage} method name may be miss spelled.");
 
         private static readonly DiagnosticDescriptor HandleMessageSignatureReturnTypeRule = new DiagnosticDescriptor(
             HandleMessageSignatureReturnTypeDiagnosticId,
-            "HandleMessage method return type not acceptable",
-            "HandleMessage return type {0} which must be {1}",
+            $"{HandleMessage} method return type not acceptable",
+            $"{HandleMessage} return type {0} which must be {1}",
             CategoryNaming,
             DiagnosticSeverity.Error,
             isEnabledByDefault: true,
-            description: "HandleMessage method return type not acceptable");
+            description: $"{HandleMessage} method return type not acceptable.");
 
         private static readonly DiagnosticDescriptor HandleMessageSignatureArgLengthRule = new DiagnosticDescriptor(
             HandleMessageSignatureArgLengthDiagnosticId,
-            "HandleMessage method parameters list length",
-            "HandleMessage method must have exact {0} parameter{1}",
+            $"{HandleMessage} method parameters list length",
+            $"{HandleMessage} method must have exact {0} parameter{1}",
             CategoryNaming,
             DiagnosticSeverity.Error,
             isEnabledByDefault: true,
-            description: "HandleMessage method parameters list length is not match");
+            description: $"{HandleMessage} method parameters list length is not match.");
 
         private static readonly DiagnosticDescriptor HandleMessageSignatureArg0Rule = new DiagnosticDescriptor(
             HandleMessageSignatureArg0DiagnosticId,
-            "HandleMessage method argument type is invalid",
-            "HandleMessage method argument {0} must be a MessagePackObject implements {1}",
+            $"{HandleMessage} method argument type is invalid",
+            $"{HandleMessage} method argument {0} must be a MessagePackObject implements {1}",
             CategoryNaming,
             DiagnosticSeverity.Error,
             isEnabledByDefault: true,
-            description: "HandleMessage method argument type is invalid");
+            description: $"{HandleMessage} method argument type is invalid.");
 
         private static readonly DiagnosticDescriptor HandleMessageSignatureArg1Rule = new DiagnosticDescriptor(
             HandleMessageSignatureArg1DiagnosticId,
-            "HandleMessage method argument type is invalid",
-            "HandleMessage method argument {0} must be an {1}",
+            $"{HandleMessage} method argument type is invalid",
+            $"{HandleMessage} method argument {0} must be an {1}",
             CategoryNaming,
             DiagnosticSeverity.Error,
             isEnabledByDefault: true,
-            description: "HandleMessage method argument type is invalid");
+            description: $"{HandleMessage} method argument type is invalid.");
 
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
@@ -85,6 +91,8 @@ namespace SenAnalyzer
 
         public override void Initialize(AnalysisContext context)
         {
+            context.EnableConcurrentExecution();
+            context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.Analyze | GeneratedCodeAnalysisFlags.ReportDiagnostics);
             context.RegisterSymbolAction(AnalyzeHandleMessageMethodSymbol, SymbolKind.Method);
             context.RegisterSymbolAction(AnalyzeHandleMessageMethodSignature, SymbolKind.Method);
         }
@@ -124,9 +132,9 @@ namespace SenAnalyzer
                     context.ReportDiagnostic(diagnostic);
                 }
 
-                if (methodSymbol.Parameters.Length != 1)
+                if (methodSymbol.Parameters.Length != 2)
                 {
-                    var diagnostic = Diagnostic.Create(HandleMessageSignatureArgLengthRule, ParameterTypeLocation(methodSymbol, -1), 1, string.Empty);
+                    var diagnostic = Diagnostic.Create(HandleMessageSignatureArgLengthRule, ParameterTypeLocation(methodSymbol, -1), 2, 's');
                     context.ReportDiagnostic(diagnostic);
                 }
                 else
@@ -137,6 +145,15 @@ namespace SenAnalyzer
                     {
                         var diagnostic = Diagnostic.Create(HandleMessageSignatureArg0Rule, ParameterTypeLocation(methodSymbol, 0),
                             methodSymbol.Parameters[0].Name, tUnionDataType.Name);
+                        context.ReportDiagnostic(diagnostic);
+                    }
+
+                    ITypeSymbol param1 = methodSymbol.Parameters[1].Type;
+                    paramTypeMatch = param1.Name == NetworkOptions && param1.ContainingAssembly.Name == SenInterfaces;
+                    if (!paramTypeMatch)
+                    {
+                        var diagnostic = Diagnostic.Create(HandleMessageSignatureArg1Rule, ParameterTypeLocation(methodSymbol, 0),
+                            methodSymbol.Parameters[1].Name, NetworkOptions);
                         context.ReportDiagnostic(diagnostic);
                     }
                 }
@@ -155,10 +172,10 @@ namespace SenAnalyzer
                 }
 
 
-                if (methodSymbol.Parameters.Length != 2)
+                if (methodSymbol.Parameters.Length != 3)
                 {
                     var diagnostic = Diagnostic.Create(HandleMessageSignatureArgLengthRule,
-                        ParameterTypeLocation(methodSymbol, -1), 2, 's');
+                        ParameterTypeLocation(methodSymbol, -1), 3, 's');
                     context.ReportDiagnostic(diagnostic);
                 }
                 else
@@ -178,6 +195,15 @@ namespace SenAnalyzer
                     {
                         var diagnostic = Diagnostic.Create(HandleMessageSignatureArg1Rule,
                             ParameterTypeLocation(methodSymbol, 1), methodSymbol.Parameters[1].Name, "IPlayer");
+                        context.ReportDiagnostic(diagnostic);
+                    }
+
+                    ITypeSymbol param2 = methodSymbol.Parameters[2].Type;
+                    bool param2TypeMatch = param2.Name == NetworkOptions && param2.ContainingAssembly.Name == SenInterfaces;
+                    if (!param2TypeMatch)
+                    {
+                        var diagnostic = Diagnostic.Create(HandleMessageSignatureArg1Rule, ParameterTypeLocation(methodSymbol, 0),
+                            methodSymbol.Parameters[2].Name, NetworkOptions);
                         context.ReportDiagnostic(diagnostic);
                     }
                 }
@@ -211,11 +237,11 @@ namespace SenAnalyzer
 
         static bool IsOfIPlayer(ITypeSymbol param1)
         {
-            if (param1.Name == "IPlayer" && param1.ContainingAssembly.Name == "Sen.Interfaces")
+            if (param1.Name == "IPlayer" && param1.ContainingAssembly.Name == SenInterfaces)
             {
                 return true;
             }
-            if (param1.AllInterfaces.Any(i => i.Name == "IPlayer" && i.ContainingAssembly.Name == "Sen.Interfaces"))
+            if (param1.AllInterfaces.Any(i => i.Name == "IPlayer" && i.ContainingAssembly.Name == SenInterfaces))
             {
                 return true;
             }
@@ -228,7 +254,7 @@ namespace SenAnalyzer
             {
                 return null;
             }
-            if (classType.IsGenericType && classType.Name == "Player" && classType.ContainingAssembly.Name == "Sen.Grains")
+            if (classType.IsGenericType && classType.Name == SenPlayerClassName && classType.ContainingAssembly.Name == SenGrains)
             {
                 return classType.TypeArguments[0];
             }
@@ -237,11 +263,12 @@ namespace SenAnalyzer
 
         static bool HasInterface(ITypeSymbol type, ITypeSymbol @interface)
         {
-            if (type.Name == @interface.Name && type.ContainingAssembly == @interface.ContainingAssembly)
+            var cmp = SymbolEqualityComparer.Default;
+            if (type.Name == @interface.Name && cmp.Equals(type.ContainingAssembly, @interface.ContainingAssembly))
             {
                 return true;
             }
-            if (type.AllInterfaces.Any(i => i.Name == @interface.Name && i.ContainingAssembly == @interface.ContainingAssembly))
+            if (type.AllInterfaces.Any(i => i.Name == @interface.Name && cmp.Equals(i.ContainingAssembly, @interface.ContainingAssembly)))
             {
                 return true;
             }
@@ -263,7 +290,7 @@ namespace SenAnalyzer
             {
                 return null;
             }
-            if (typeSymbol.Name == "Room" && typeSymbol.ContainingAssembly.Name == "Sen.Grains")
+            if (typeSymbol.Name == SenRoomClassName && typeSymbol.ContainingAssembly.Name == SenGrains)
             {
                 if (typeSymbol.GetMembers().FirstOrDefault(t => t.Name == HandleMessage) is IMethodSymbol method
                     && method.ReturnType is INamedTypeSymbol valueTask)

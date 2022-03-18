@@ -14,7 +14,7 @@
 		client.handleMessage('MyData', function(myData) {
 			console.log(JSON.stringify(myData));
 		})
-		client.connect('ws://localhost:2052/websocket/haihai/skjdhwiuehkjdhfjksd/');
+		client.connect('ws://localhost:8080/websocket/haihai/skjdhwiuehkjdhfjksd/');
 		console.time('connect')
 		client.onStatusChanged = function(statusCode) {
 			switch (statusCode) {

@@ -1,17 +1,19 @@
-﻿using NLog.Extensions.Logging;
+﻿using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using NLog.Extensions.Logging;
 using Orleans;
 using Orleans.Concurrency;
 using Orleans.Hosting;
-using Orleans.Streams;
-using Sen;
 using Sen.Utilities.Console;
 using System;
 using System.Threading.Tasks;
+using System.Threading;
 
 namespace Sen.Proxy
 {
     public class OrleansProxyClient<TPlayerGrain> : IPlayerFactory where TPlayerGrain : IPlayer, IGrainWithStringKey
     {
+        static readonly ILogger<OrleansProxyClient<TPlayerGrain>> logger = SenProxy.LoggerFactory.CreateLogger<OrleansProxyClient<TPlayerGrain>>();
         public const string SMSProvider = "SMSProvider";
 
         public const string ProxyStream = "ProxyStream";
@@ -20,10 +22,9 @@ namespace Sen.Proxy
 
         public IPlayer CreatePlayer(string playerId) => OrleansClusterClient.GetGrain<TPlayerGrain>(playerId);
 
-        public IAsyncStream<Immutable<byte[]>> CreateStream(IPlayer player)
+        Task<IClientObserver> IPlayerFactory.CreateObserver<T>(T observer)
         {
-            return OrleansClusterClient.GetStreamProvider(SMSProvider)
-                .GetStream<Immutable<byte[]>>(Guid.NewGuid(), ProxyStream);
+            return OrleansClusterClient.CreateObjectReference<IClientObserver>(observer);
         }
 
         public async Task<int> RunOrleansProxyClient(ISenProxy senProxy, IConsoleCommand consoleCommand = null)
@@ -33,13 +34,14 @@ namespace Sen.Proxy
                 // Configure a client and connect to the service.
                 OrleansClusterClient = new ClientBuilder()
                     .UseLocalhostClustering(serviceId: "SenServer", clusterId: "dev")
-                    .AddSimpleMessageStreamProvider(SMSProvider)
                     .ConfigureLogging(logging => logging.AddNLog())
                     .Build();
 
                 senProxy.SetGrainFactory(this);
                 await OrleansClusterClient.Connect(RetryFilter);
-                Console.WriteLine("Proxy successfully connect to silo host");
+                string message = "Proxy successfully connect to silo host";
+                Console.WriteLine(message);
+                logger.LogInformation(message);
                 await senProxy.StartAsync();
                 if (consoleCommand != null)
                 {
@@ -52,7 +54,9 @@ namespace Sen.Proxy
                         Console.ReadLine(); // Run till cancel key pressed
                     }
                 }
-                Console.WriteLine("Exitting Orleans");
+                message = "Exitting Orleans";
+                Console.WriteLine(message);
+                logger.LogInformation(message);
                 return 0;
             }
             catch (Exception e)
@@ -71,6 +75,7 @@ namespace Sen.Proxy
             Console.ForegroundColor = ConsoleColor.Red;
             Console.WriteLine(msg);
             Console.ResetColor();
+            logger.LogInformation(msg);
             await Task.Delay(TimeSpan.FromSeconds(10));
             return true;
         }

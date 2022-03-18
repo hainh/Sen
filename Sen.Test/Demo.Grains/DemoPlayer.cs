@@ -7,16 +7,15 @@ namespace Demo.Grains
 {
     public class DemoPlayer : AbstractPlayer<IDemoUnionData, PlayerState>, IDemoPlayer
     {
-        public override string Name => State.Name;
-
         public override ValueTask OnDisconnect()
         {
             return default;
         }
 
-        public ValueTask<IDemoUnionData> HandleMessage(Hello hello)
+        public ValueTask<IDemoUnionData> HandleMessage2(Hello hello, NetworkOptions networkOptions)
         {
             hello.Message = $"{hello.Message} huh?";
+            networkOptions.Reliability = Reliability.Unreliable;
             return new ValueTask<IDemoUnionData>(hello);
         }
 

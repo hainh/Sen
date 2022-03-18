@@ -18,17 +18,14 @@ namespace SenAnalyzer
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(RenameHandleMessageCodeFixProvider)), Shared]
     public class RenameHandleMessageCodeFixProvider : CodeFixProvider
     {
-        private const string title = "Change to HandleMessage";
+        private const string title = "Change {} to HandleMessage";
 
         public sealed override ImmutableArray<string> FixableDiagnosticIds
         {
             get 
             { 
                 return ImmutableArray.Create(
-                    HandleMessageMethodAnalyzer.RenameToHandleMessageDiagnosticId
-                    /*HandleMessageMethodAnalyzer.MessageTypeHasAttributeDiagnosticId,
-                    HandleMessageMethodAnalyzer.MessageTypeImplementDiagnosticId,
-                    HandleMessageMethodAnalyzer.MessageTypeMustBeDeclaredInUnionDiagnosticId*/);
+                    HandleMessageMethodAnalyzer.RenameToHandleMessageDiagnosticId);
             }
         }
 
@@ -50,20 +47,20 @@ namespace SenAnalyzer
                 // Find the type declaration identified by the diagnostic.
                 SyntaxNode declaration = root.FindToken(diagnosticSpan.Start).Parent;
 
+                string title = string.Format(RenameHandleMessageCodeFixProvider.title, ((MethodDeclarationSyntax)declaration).Identifier.Value);
                 // Register a code action that will invoke the fix.
                 context.RegisterCodeFix(
                     CodeAction.Create(
                         title: title,
-                        createChangedSolution: c => MakeUppercaseAsync(context.Document, declaration, c),
+                        createChangedSolution: c => RenameHandleMessageAsync(context.Document, declaration, c),
                         equivalenceKey: title),
                     renameDiagnostic);
             }
 
         }
 
-        private async Task<Solution> MakeUppercaseAsync(Document document, SyntaxNode methodDecl, CancellationToken cancellationToken)
+        private async Task<Solution> RenameHandleMessageAsync(Document document, SyntaxNode methodDecl, CancellationToken cancellationToken)
         {
-            // Compute new uppercase name.
             var newName = HandleMessageMethodAnalyzer.HandleMessage;
 
             // Get the symbol representing the type to be renamed.
@@ -75,7 +72,7 @@ namespace SenAnalyzer
             var optionSet = originalSolution.Workspace.Options;
             var newSolution = await Renamer.RenameSymbolAsync(document.Project.Solution, typeSymbol, newName, optionSet, cancellationToken).ConfigureAwait(false);
 
-            // Return the new solution with the now-uppercase type name.
+            // Return the new solution with the now-renamed type name.
             return newSolution;
         }
     }

@@ -1,14 +1,10 @@
-﻿using Orleans;
-using Orleans.Concurrency;
-using Sen;
-using System;
+﻿
 using System.Collections.Generic;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace Sen
 {
-    public interface IRoom
+    public interface IRoom : Orleans.IGrainWithStringKey
     {
         ValueTask<long> GetMatchId();
         ValueTask<string> GetRoomName();
@@ -25,6 +21,6 @@ namespace Sen
 
         ValueTask<bool> JoinRoom(IPlayer player, string playerName);
 
-        ValueTask<IUnionData> HandleRoomMessage(IUnionData message, IPlayer player);
+        ValueTask<IUnionData> HandleRoomMessage(IUnionData message, IPlayer sender, NetworkOptions networkOptions);
     }
 }

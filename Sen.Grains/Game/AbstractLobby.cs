@@ -18,12 +18,12 @@ namespace Sen
 
         public AbstractLobby()
         {
-            State.PlayerLimit = int.MaxValue;
+            //State.PlayerLimit = int.MaxValue;
         }
 
-        public ValueTask<IList<IRoom>> GetRooms() => new ValueTask<IList<IRoom>>(_rooms);
+        public ValueTask<IList<IRoom>> GetRooms() => new(_rooms);
 
-        public override ValueTask<bool> IsLobby() => new ValueTask<bool>(true);
+        public override ValueTask<bool> IsLobby() => new(true);
 
         public async ValueTask<IRoom> FindRoom(string roomName)
         {

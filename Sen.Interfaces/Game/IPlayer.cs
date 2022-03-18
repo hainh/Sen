@@ -1,11 +1,10 @@
 ﻿using Orleans.Concurrency;
-using Sen;
 using System.Net;
 using System.Threading.Tasks;
 
 namespace Sen
 {
-    public interface IPlayer
+    public interface IPlayer : Orleans.IGrainWithStringKey
     {
         /// <summary>
         /// Get Player's ID (name)
@@ -33,21 +32,28 @@ namespace Sen
         /// <param name="remote">Remote IP endpoint</param>
         /// <param name="username">Username for authorization</param>
         /// <param name="accessToken">Access token for authorization</param>
+        /// <param name="observer">Observer to receive data from server</param>
         /// <returns>true if successfully authorized, false other wise</returns>
-        ValueTask<bool> InitConnection(EndPoint local, EndPoint remote, string username, string accessToken);
+        ValueTask<bool> InitConnection(string local, string remote, string username, string accessToken, IClientObserver observer);
         /// <summary>
         /// Write/send data to client
         /// </summary>
         /// <param name="data">Data to write</param>
         /// <param name="underlieData">End user's data representation</param>
         /// <returns>ValueTask to wait</returns>
-        ValueTask Write(Immutable<IUnionData> data, WiredDataType underlieData = WiredDataType.Normal);
+        ValueTask SendData(Immutable<IUnionData> data, NetworkOptions networkOptions);
+        /// <summary>
+        /// Write/send data to client
+        /// </summary>
+        /// <param name="data"></param>
+        /// <returns></returns>
+        ValueTask SendData(Immutable<byte[]> data);
         /// <summary>
         /// Read data from client
         /// </summary>
         /// <param name="data">Data recieved</param>
         /// <returns>Data to write back to client</returns>
-        ValueTask<Immutable<byte[]>> Read(Immutable<byte[]> data); // Read data from client
+        ValueTask<Immutable<byte[]>> OnReceivedData(Immutable<byte[]> data); // Read data from client
         /// <summary>
         /// Raises on connection closed
         /// </summary>

@@ -26,7 +26,7 @@ namespace SenAnalyzer
             CategoryMessageType,
             DiagnosticSeverity.Error,
             isEnabledByDefault: true,
-            description: "Message type must implement a Union interface");
+            description: "Message type must implement a Union interface.");
 
         private static readonly DiagnosticDescriptor MessageTypeMustHaveAttributeRule = new DiagnosticDescriptor(
             MessageTypeHasAttributeDiagnosticId,
@@ -35,7 +35,7 @@ namespace SenAnalyzer
             CategoryMessageType,
             DiagnosticSeverity.Error,
             isEnabledByDefault: true,
-            description: @"Message type must have ""MessagePackObject"" attribute");
+            description: "Message type must have \"MessagePackObject\" attribute.");
 
         private static readonly DiagnosticDescriptor MessageTypeMustBeDeclaredInUnionTypeRule = new DiagnosticDescriptor(
             MessageTypeMustBeDeclaredInUnionDiagnosticId,
@@ -44,7 +44,7 @@ namespace SenAnalyzer
             CategoryMessageType,
             DiagnosticSeverity.Error,
             isEnabledByDefault: true,
-            description: "Message type must be declared in this Union interface");
+            description: "Message type must be declared in this Union interface.");
 
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get { return ImmutableArray.Create(
                     MessageTypeImplementInterfaceDerectlyRule,
@@ -53,6 +53,8 @@ namespace SenAnalyzer
 
         public override void Initialize(AnalysisContext context)
         {
+            context.EnableConcurrentExecution();
+            context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.Analyze | GeneratedCodeAnalysisFlags.ReportDiagnostics);
             context.RegisterSymbolAction(AnalyzeMessageType, SymbolKind.NamedType);
         }
 
@@ -113,7 +115,7 @@ namespace SenAnalyzer
             return IsName(attributeData.AttributeClass, "UnionAttribute", "MessagePack.Annotations")
                 && !attributeData.ConstructorArguments[1].IsNull
                 && attributeData.ConstructorArguments[1].Value is ITypeSymbol type
-                && type == typeSymbol;
+                && SymbolEqualityComparer.Default.Equals(type, typeSymbol);
         }
 
         static bool IsName(ISymbol symbol, string name, string assemblyName)

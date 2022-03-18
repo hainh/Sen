@@ -9,7 +9,7 @@ namespace Demo.Grains
     {
         public const string GameWorldName = "GameWorld";
 
-        public ValueTask<JoinRoom> HandleMessage(JoinRoom joinRoomMessage, IPlayer player)
+        public ValueTask<JoinRoom> HandleMessage(JoinRoom joinRoomMessage, IPlayer sender, NetworkOptions networkOptions)
         {
             if (joinRoomMessage.RoomName == GameWorldName)
             {

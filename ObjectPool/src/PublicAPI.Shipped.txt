@@ -1,0 +1,50 @@
+#nullable enable
+~Microsoft.Extensions.ObjectPool1.DefaultObjectPool<T>
+~Microsoft.Extensions.ObjectPool1.DefaultPooledObjectPolicy<T>
+~Microsoft.Extensions.ObjectPool1.LeakTrackingObjectPool<T>
+~Microsoft.Extensions.ObjectPool1.ObjectPool<T>
+abstract Microsoft.Extensions.ObjectPool1.ObjectPool<T>.Get() -> T!
+abstract Microsoft.Extensions.ObjectPool1.ObjectPool<T>.Return(T! obj) -> void
+abstract Microsoft.Extensions.ObjectPool1.ObjectPoolProvider.Create<T>(Microsoft.Extensions.ObjectPool1.IPooledObjectPolicy<T!>! policy) -> Microsoft.Extensions.ObjectPool1.ObjectPool<T!>!
+abstract Microsoft.Extensions.ObjectPool1.PooledObjectPolicy<T>.Create() -> T
+abstract Microsoft.Extensions.ObjectPool1.PooledObjectPolicy<T>.Return(T obj) -> bool
+Microsoft.Extensions.ObjectPool1.DefaultObjectPool<T>.DefaultObjectPool(Microsoft.Extensions.ObjectPool1.IPooledObjectPolicy<T!>! policy) -> void
+Microsoft.Extensions.ObjectPool1.DefaultObjectPool<T>.DefaultObjectPool(Microsoft.Extensions.ObjectPool1.IPooledObjectPolicy<T!>! policy, int maximumRetained) -> void
+Microsoft.Extensions.ObjectPool1.DefaultObjectPoolProvider
+Microsoft.Extensions.ObjectPool1.DefaultObjectPoolProvider.DefaultObjectPoolProvider() -> void
+Microsoft.Extensions.ObjectPool1.DefaultObjectPoolProvider.MaximumRetained.get -> int
+Microsoft.Extensions.ObjectPool1.DefaultObjectPoolProvider.MaximumRetained.set -> void
+Microsoft.Extensions.ObjectPool1.DefaultPooledObjectPolicy<T>.DefaultPooledObjectPolicy() -> void
+Microsoft.Extensions.ObjectPool1.IPooledObjectPolicy<T>
+Microsoft.Extensions.ObjectPool1.IPooledObjectPolicy<T>.Create() -> T
+Microsoft.Extensions.ObjectPool1.IPooledObjectPolicy<T>.Return(T obj) -> bool
+Microsoft.Extensions.ObjectPool1.LeakTrackingObjectPool<T>.LeakTrackingObjectPool(Microsoft.Extensions.ObjectPool1.ObjectPool<T!>! inner) -> void
+Microsoft.Extensions.ObjectPool1.LeakTrackingObjectPoolProvider
+Microsoft.Extensions.ObjectPool1.LeakTrackingObjectPoolProvider.LeakTrackingObjectPoolProvider(Microsoft.Extensions.ObjectPool1.ObjectPoolProvider! inner) -> void
+Microsoft.Extensions.ObjectPool1.ObjectPool
+Microsoft.Extensions.ObjectPool1.ObjectPool<T>.ObjectPool() -> void
+Microsoft.Extensions.ObjectPool1.ObjectPoolProvider
+Microsoft.Extensions.ObjectPool1.ObjectPoolProvider.Create<T>() -> Microsoft.Extensions.ObjectPool1.ObjectPool<T!>!
+Microsoft.Extensions.ObjectPool1.ObjectPoolProvider.ObjectPoolProvider() -> void
+Microsoft.Extensions.ObjectPool1.ObjectPoolProviderExtensions
+Microsoft.Extensions.ObjectPool1.PooledObjectPolicy<T>
+Microsoft.Extensions.ObjectPool1.PooledObjectPolicy<T>.PooledObjectPolicy() -> void
+Microsoft.Extensions.ObjectPool1.StringBuilderPooledObjectPolicy
+Microsoft.Extensions.ObjectPool1.StringBuilderPooledObjectPolicy.InitialCapacity.get -> int
+Microsoft.Extensions.ObjectPool1.StringBuilderPooledObjectPolicy.InitialCapacity.set -> void
+Microsoft.Extensions.ObjectPool1.StringBuilderPooledObjectPolicy.MaximumRetainedCapacity.get -> int
+Microsoft.Extensions.ObjectPool1.StringBuilderPooledObjectPolicy.MaximumRetainedCapacity.set -> void
+Microsoft.Extensions.ObjectPool1.StringBuilderPooledObjectPolicy.StringBuilderPooledObjectPolicy() -> void
+override Microsoft.Extensions.ObjectPool1.DefaultObjectPool<T>.Get() -> T!
+override Microsoft.Extensions.ObjectPool1.DefaultObjectPool<T>.Return(T! obj) -> void
+override Microsoft.Extensions.ObjectPool1.DefaultObjectPoolProvider.Create<T>(Microsoft.Extensions.ObjectPool1.IPooledObjectPolicy<T!>! policy) -> Microsoft.Extensions.ObjectPool1.ObjectPool<T!>!
+override Microsoft.Extensions.ObjectPool1.DefaultPooledObjectPolicy<T>.Create() -> T!
+override Microsoft.Extensions.ObjectPool1.DefaultPooledObjectPolicy<T>.Return(T! obj) -> bool
+override Microsoft.Extensions.ObjectPool1.LeakTrackingObjectPool<T>.Get() -> T!
+override Microsoft.Extensions.ObjectPool1.LeakTrackingObjectPool<T>.Return(T! obj) -> void
+override Microsoft.Extensions.ObjectPool1.LeakTrackingObjectPoolProvider.Create<T>(Microsoft.Extensions.ObjectPool1.IPooledObjectPolicy<T!>! policy) -> Microsoft.Extensions.ObjectPool1.ObjectPool<T!>!
+override Microsoft.Extensions.ObjectPool1.StringBuilderPooledObjectPolicy.Create() -> System.Text.StringBuilder!
+override Microsoft.Extensions.ObjectPool1.StringBuilderPooledObjectPolicy.Return(System.Text.StringBuilder! obj) -> bool
+static Microsoft.Extensions.ObjectPool1.ObjectPool.Create<T>(Microsoft.Extensions.ObjectPool1.IPooledObjectPolicy<T!>? policy = null) -> Microsoft.Extensions.ObjectPool1.ObjectPool<T!>!
+static Microsoft.Extensions.ObjectPool1.ObjectPoolProviderExtensions.CreateStringBuilderPool(this Microsoft.Extensions.ObjectPool1.ObjectPoolProvider! provider) -> Microsoft.Extensions.ObjectPool1.ObjectPool<System.Text.StringBuilder!>!
+static Microsoft.Extensions.ObjectPool1.ObjectPoolProviderExtensions.CreateStringBuilderPool(this Microsoft.Extensions.ObjectPool1.ObjectPoolProvider! provider, int initialCapacity, int maximumRetainedCapacity) -> Microsoft.Extensions.ObjectPool1.ObjectPool<System.Text.StringBuilder!>!

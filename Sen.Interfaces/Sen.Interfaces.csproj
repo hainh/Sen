@@ -17,6 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\ObjectPool\src\Microsoft.Extensions.ObjectPool.csproj" />
     <ProjectReference Include="..\Sen.Utilities\Sen.Utilities.csproj" />
   </ItemGroup>
 

@@ -1,6 +1,4 @@
 ﻿using Orleans.Concurrency;
-using Orleans.Streams;
-using Sen;
 using System.Threading.Tasks;
 
 namespace Sen.Proxy
@@ -15,6 +13,6 @@ namespace Sen.Proxy
     public interface IPlayerFactory
     {
         IPlayer CreatePlayer(string playerId);
-        IAsyncStream<Immutable<byte[]>> CreateStream(IPlayer player);
+        Task<IClientObserver> CreateObserver<T>(T player) where T : class, IClientObserver;
     }
 }

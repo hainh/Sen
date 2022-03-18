@@ -17,13 +17,13 @@ using System.Threading.Tasks;
 
 namespace Sen.Proxy
 {
-    public class DotNettyProxy : ISenProxy
+    public class SenProxy : ISenProxy
     {
         private const string text = " is listening on port ";
         public ProxyConfig ProxyConfig { get; }
         readonly Dictionary<string, X509Certificate2> Certificates = new Dictionary<string, X509Certificate2>();
 
-        readonly ILogger<DotNettyProxy> logger = LoggerFactory.CreateLogger<DotNettyProxy>();
+        readonly ILogger<SenProxy> logger = LoggerFactory.CreateLogger<SenProxy>();
 
         private IEventLoopGroup bossGroup;
         private IEventLoopGroup workGroup;
@@ -31,7 +31,7 @@ namespace Sen.Proxy
 
         public static ILoggerFactory LoggerFactory { get; }
 
-        static DotNettyProxy()
+        static SenProxy()
         {
             LoggerFactory = new NLogLoggerFactory();
             Utilities.InternalLogger.LoggerFactory = LoggerFactory;
@@ -42,7 +42,7 @@ namespace Sen.Proxy
 
         private IPlayerFactory grainFactory;
 
-        public DotNettyProxy()
+        public SenProxy()
         {
             ProxyConfig = new ProxyConfig("ProxyConfig.json").Load();
 
@@ -56,6 +56,16 @@ namespace Sen.Proxy
         }
 
         public async Task StartAsync()
+        {
+            await StartServerDotNetty();
+            await StartServerRuffles();
+        }
+
+        /// <summary>
+        /// TCP and WebSocket
+        /// </summary>
+        /// <returns></returns>
+        private async Task StartServerDotNetty()
         {
             ResourceLeakDetector.Level = ResourceLeakDetector.DetectionLevel.Disabled;
             Console.WriteLine($"Resource Leak Detector Level : {ResourceLeakDetector.Level}");
@@ -98,10 +108,6 @@ namespace Sen.Proxy
                         {
 
                         }
-                        else if (listener is UdpListener udpListener)
-                        {
-
-                        }
                     }));
             if (IsUnixLike())
             {
@@ -111,11 +117,11 @@ namespace Sen.Proxy
             }
 
             await Bind();
-            IChannel bootstrapChannel = await bootstrap.BindAsync(IPAddress.Loopback, 9090);
-            IChannel nextChannel = await bootstrap.BindAsync(IPAddress.Loopback, 9091);
+            string message = "Proxy Server started.";
             Console.ForegroundColor = ConsoleColor.Yellow;
-            Console.WriteLine("Proxy Server started.");
+            Console.WriteLine(message);
             Console.ResetColor();
+            logger.LogInformation(message);
 
             async Task Bind()
             {
@@ -123,26 +129,31 @@ namespace Sen.Proxy
                 {
                     if (channels.All(c => (c.LocalAddress as IPEndPoint).Port != listener.Port))
                     {
-                        if (listener is WebSocketListener ws && ws.UseTLS)
+                        if (listener.UseTLS && !Certificates.ContainsKey(listener.CertificateName))
                         {
-                            X509Certificate2 x509Certificate2 = 
-                                GetCertificateFromStore(ws.StoreLocation, ws.CertificateName);
-                            Certificates.Add(ws.CertificateName, x509Certificate2);
+                            X509Certificate2 x509Certificate2 =
+                                GetCertificateFromStore(listener.StoreLocation, listener.CertificateName);
+                            Certificates.Add(listener.CertificateName, x509Certificate2);
                         }
                         try
                         {
                             IChannel channel = await bootstrap.BindAsync(listener.Port);
                             channels.Add(channel);
-                            string name = listener.GetType().Name;
-                            name = name.Substring(0, name.IndexOf("Listener"));
-                            string msg = name + text + listener.Port;
-                            logger.LogInformation(msg);
-                            Console.ForegroundColor = ConsoleColor.Magenta;
-                            Console.Write(name);
-                            Console.ResetColor();
-                            Console.Write(text);
-                            Console.ForegroundColor = ConsoleColor.Magenta;
-                            Console.WriteLine(listener.Port);
+                            logListenSuccess(logger, listener);
+
+                            static void logListenSuccess(ILogger<SenProxy> logger, Listener listener)
+                            {
+                                string name = listener.GetType().Name;
+                                name = name.Substring(0, name.IndexOf("Listener"));
+                                string msg = name + text + listener.Port;
+                                logger.LogInformation(msg);
+                                Console.ForegroundColor = ConsoleColor.Magenta;
+                                Console.Write(name);
+                                Console.ResetColor();
+                                Console.Write(text);
+                                Console.ForegroundColor = ConsoleColor.Magenta;
+                                Console.WriteLine(listener.Port);
+                            }
                         }
                         catch (Exception e)
                         {
@@ -153,7 +164,15 @@ namespace Sen.Proxy
             }
         }
 
-        private bool IsUnixLike()
+        /// <summary>
+        /// RUPD
+        /// </summary>
+        private async Task StartServerRuffles()
+        {
+            await Task.CompletedTask;
+        }
+
+        private static bool IsUnixLike()
         {
             return RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
         }
@@ -172,7 +191,7 @@ namespace Sen.Proxy
             }
         }
 
-        private X509Certificate2 GetCertificateFromStore(StoreLocation storeLocation, string certName)
+        private static X509Certificate2 GetCertificateFromStore(StoreLocation storeLocation, string certName)
         {
             // Get the certificate store for the current user.
             X509Store store = new X509Store(storeLocation);

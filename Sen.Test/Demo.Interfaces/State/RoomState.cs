@@ -12,6 +12,6 @@ namespace Demo.Interfaces
         public string Password { get; set; }
         public int PlayerLimit { get; set; }
         public ILobby Parent { get; set; }
-        public IDictionary<string, IPlayer> Players { get; set; }
+        public IDictionary<string, IPlayer> Players { get; set; } = new Dictionary<string, IPlayer>();
     }
 }
