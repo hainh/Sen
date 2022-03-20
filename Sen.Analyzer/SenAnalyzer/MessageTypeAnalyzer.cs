@@ -16,6 +16,7 @@ namespace SenAnalyzer
         public const string MessageTypeImplementDiagnosticId = "MessageTypeMustNotImplementIUnionDataDirectly";
         public const string MessageTypeHasAttributeDiagnosticId = "MessageTypeMustHasMessagePackObjectAttribute";
         public const string MessageTypeMustBeDeclaredInUnionDiagnosticId = "MessageTypeMustBeDeclaredInUnion";
+        public const string MessageTypeLackAHandleMessageMethodDiagnosticId = "MessageTypeLackAHandleMessageMethod";
 
         private const string CategoryMessageType = "Message";
 
@@ -46,10 +47,20 @@ namespace SenAnalyzer
             isEnabledByDefault: true,
             description: "Message type must be declared in this Union interface.");
 
+        private static readonly DiagnosticDescriptor MessageTypeLackAHandleMessageMethodRule = new DiagnosticDescriptor(
+            MessageTypeLackAHandleMessageMethodDiagnosticId,
+            $"Message type has no {HandleMessageMethodAnalyzer.HandleMessage} method yet",
+            @$"Message type ""{{0}}"" should have a {HandleMessageMethodAnalyzer.HandleMessage} method",
+            CategoryMessageType,
+            DiagnosticSeverity.Info,
+            isEnabledByDefault: true,
+            description: $"Message type should have a {HandleMessageMethodAnalyzer.HandleMessage} method.");
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get { return ImmutableArray.Create(
                     MessageTypeImplementInterfaceDerectlyRule,
                     MessageTypeMustHaveAttributeRule,
-                    MessageTypeMustBeDeclaredInUnionTypeRule); } }
+                    MessageTypeMustBeDeclaredInUnionTypeRule,
+                    MessageTypeLackAHandleMessageMethodRule); } }
 
         public override void Initialize(AnalysisContext context)
         {
@@ -64,14 +75,14 @@ namespace SenAnalyzer
             {
                 if (typeSymbol.GetAttributes().Any(IsMessagePackObjectAttribute))
                 {
-                    if (typeSymbol.Interfaces.Length == 0 || !typeSymbol.Interfaces.Any(IsDerivedFromIUnionData))
+                    if (typeSymbol.Interfaces.Length == 0 || !typeSymbol.Interfaces.Any(IsImplemetationOfIUnionData))
                     {
                         var diagnostic = Diagnostic.Create(MessageTypeImplementInterfaceDerectlyRule, typeSymbol.Locations[0], typeSymbol.Name);
                         context.ReportDiagnostic(diagnostic);
                     }
                     else
                     {
-                        var unionType = typeSymbol.Interfaces.First(IsDerivedFromIUnionData);
+                        var unionType = typeSymbol.Interfaces.First(IsImplemetationOfIUnionData);
                         if (!unionType.GetAttributes().Any(attr => IsUnionAttributeOf(typeSymbol, attr)))
                         {
                             int key = 0;
@@ -97,14 +108,22 @@ namespace SenAnalyzer
                             var diagnostic = Diagnostic.Create(MessageTypeMustBeDeclaredInUnionTypeRule, typeSymbol.Locations[0], properties, typeSymbol.Name, unionType.Name);
                             context.ReportDiagnostic(diagnostic);
                         }
+                        else
+                        {
+                            AnalyzeHandlerOfMessageType(context, typeSymbol);
+                        }
                     }
                 }
-                else if (typeSymbol.Interfaces.Any(IsDerivedFromIUnionData))
+                else if (typeSymbol.Interfaces.Any(IsImplemetationOfIUnionData))
                 {
                     if (!typeSymbol.GetAttributes().Any(IsMessagePackObjectAttribute))
                     {
                         var diagnostic = Diagnostic.Create(MessageTypeMustHaveAttributeRule, typeSymbol.Locations[0], typeSymbol.Name);
                         context.ReportDiagnostic(diagnostic);
+                    }
+                    else
+                    {
+                        AnalyzeHandlerOfMessageType(context, typeSymbol);
                     }
                 }
             }
@@ -128,7 +147,7 @@ namespace SenAnalyzer
             return IsName(attributeData.AttributeClass, "MessagePackObjectAttribute", "MessagePack.Annotations");
         }
 
-        static bool IsDerivedFromIUnionData(INamedTypeSymbol typeSymbol)
+        static bool IsImplemetationOfIUnionData(INamedTypeSymbol typeSymbol)
         {
             return typeSymbol.AllInterfaces.Any(IsIUnionDataInterface);
         }
@@ -138,5 +157,11 @@ namespace SenAnalyzer
             return IsName(typeSymbol, "IUnionData", "Sen.Interfaces");
         }
 
+        static void AnalyzeHandlerOfMessageType(SymbolAnalysisContext context, INamedTypeSymbol typeSymbol)
+        {
+            //var properties = new Dictionary<string, string>();
+            //var diagnostic = Diagnostic.Create(MessageTypeLackAHandleMessageMethodRule, typeSymbol.Locations[0], properties, typeSymbol.Name);
+            //context.ReportDiagnostic(diagnostic);
+        }
     }
 }

@@ -18,7 +18,7 @@ namespace SenAnalyzer
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(RenameHandleMessageCodeFixProvider)), Shared]
     public class RenameHandleMessageCodeFixProvider : CodeFixProvider
     {
-        private const string title = "Change {} to HandleMessage";
+        private const string title = "Change {0} to HandleMessage";
 
         public sealed override ImmutableArray<string> FixableDiagnosticIds
         {

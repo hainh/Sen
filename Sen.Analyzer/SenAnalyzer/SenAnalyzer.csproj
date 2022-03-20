@@ -8,20 +8,6 @@
     <!-- Avoid ID conflicts with the package project. -->
     <PackageId>*$(MSBuildProjectFile)*</PackageId>
   </PropertyGroup>
-
-  <PropertyGroup>
-    <PackageId>SenAnalyzer</PackageId>
-    <PackageVersion>1.0.0.1</PackageVersion>
-    <Authors>ng.honghai@live.com</Authors>
-    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
-    <Description>SenAnalyzer</Description>
-    <PackageReleaseNotes>First release</PackageReleaseNotes>
-    <Copyright>ng.honghai@live.com</Copyright>
-    <PackageTags>SenAnalyzer, analyzers</PackageTags>
-    <NoPackageAnalysis>true</NoPackageAnalysis>
-    <DevelopmentDependency>true</DevelopmentDependency>
-    <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);_AddAnalyzersToOutput</TargetsForTfmSpecificContentInPackage>
-  </PropertyGroup>
   
   <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.1.0" />

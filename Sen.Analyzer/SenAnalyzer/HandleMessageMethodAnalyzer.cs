@@ -20,6 +20,7 @@ namespace SenAnalyzer
         public const string HandleMessageSignatureArg0DiagnosticId = $"Sen{HandleMessage}SignatureArg0";
         public const string HandleMessageSignatureArg1DiagnosticId = $"Sen{HandleMessage}SignatureArg1";
         public const string HandleMessageSignatureArgLengthDiagnosticId = $"Sen{HandleMessage}SignatureArgLength";
+        public const string HandleMessageCreateMethodDiagnosticId = $"Sen{HandleMessage}CreateMethod";
         public const string SenPlayerClassName = "AbstractPlayer";
         public const string SenRoomClassName = "AbstractRoom";
         public const string NetworkOptions = "NetworkOptions";
@@ -76,6 +77,15 @@ namespace SenAnalyzer
             isEnabledByDefault: true,
             description: $"{HandleMessage} method argument type is invalid.");
 
+        private static readonly DiagnosticDescriptor HandleMessageCreateMethodRule = new DiagnosticDescriptor(
+            HandleMessageCreateMethodDiagnosticId,
+            $"Create mothod {HandleMessage} for a message type",
+            $"Create method {HandleMessage}",
+            CategoryNaming,
+            DiagnosticSeverity.Info,
+            isEnabledByDefault: true,
+            description: $"Create method {HandleMessage} here.");
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
             get 
@@ -85,7 +95,8 @@ namespace SenAnalyzer
                     HandleMessageSignatureReturnTypeRule,
                     HandleMessageSignatureArg0Rule,
                     HandleMessageSignatureArg1Rule,
-                    HandleMessageSignatureArgLengthRule); 
+                    HandleMessageSignatureArgLengthRule,
+                    HandleMessageCreateMethodRule); 
             }
         }
 
@@ -95,6 +106,17 @@ namespace SenAnalyzer
             context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.Analyze | GeneratedCodeAnalysisFlags.ReportDiagnostics);
             context.RegisterSymbolAction(AnalyzeHandleMessageMethodSymbol, SymbolKind.Method);
             context.RegisterSymbolAction(AnalyzeHandleMessageMethodSignature, SymbolKind.Method);
+            context.RegisterSymbolAction(AnalyzeHandleMessageCreation, SymbolKind.Field);
+        }
+
+        private void AnalyzeHandleMessageCreation(SymbolAnalysisContext context)
+        {
+            var symbol = context.Symbol;
+            if (symbol.Name.ToLower() == "hm")
+            {
+                var diagnostic = Diagnostic.Create(HandleMessageCreateMethodRule, symbol.Locations[0]);
+                context.ReportDiagnostic(diagnostic);
+            }
         }
 
         private static void AnalyzeHandleMessageMethodSymbol(SymbolAnalysisContext context)
@@ -132,30 +154,28 @@ namespace SenAnalyzer
                     context.ReportDiagnostic(diagnostic);
                 }
 
+                ITypeSymbol param0 = methodSymbol.Parameters[0].Type;
+                bool paramTypeMatch = param0.BaseType != null && HasInterface(param0, tUnionDataType);
+                if (!paramTypeMatch)
+                {
+                    var diagnostic = Diagnostic.Create(HandleMessageSignatureArg0Rule, ParameterTypeLocation(methodSymbol, 0),
+                        methodSymbol.Parameters[0].Name, tUnionDataType.Name);
+                    context.ReportDiagnostic(diagnostic);
+                }
+
+                ITypeSymbol param1 = methodSymbol.Parameters[1].Type;
+                paramTypeMatch = param1.Name == NetworkOptions && param1.ContainingAssembly.Name == SenInterfaces;
+                if (!paramTypeMatch)
+                {
+                    var diagnostic = Diagnostic.Create(HandleMessageSignatureArg1Rule, ParameterTypeLocation(methodSymbol, 0),
+                        methodSymbol.Parameters[1].Name, NetworkOptions);
+                    context.ReportDiagnostic(diagnostic);
+                }
+
                 if (methodSymbol.Parameters.Length != 2)
                 {
                     var diagnostic = Diagnostic.Create(HandleMessageSignatureArgLengthRule, ParameterTypeLocation(methodSymbol, -1), 2, 's');
                     context.ReportDiagnostic(diagnostic);
-                }
-                else
-                {
-                    ITypeSymbol param0 = methodSymbol.Parameters[0].Type;
-                    bool paramTypeMatch = param0.BaseType != null && HasInterface(param0, tUnionDataType);
-                    if (!paramTypeMatch)
-                    {
-                        var diagnostic = Diagnostic.Create(HandleMessageSignatureArg0Rule, ParameterTypeLocation(methodSymbol, 0),
-                            methodSymbol.Parameters[0].Name, tUnionDataType.Name);
-                        context.ReportDiagnostic(diagnostic);
-                    }
-
-                    ITypeSymbol param1 = methodSymbol.Parameters[1].Type;
-                    paramTypeMatch = param1.Name == NetworkOptions && param1.ContainingAssembly.Name == SenInterfaces;
-                    if (!paramTypeMatch)
-                    {
-                        var diagnostic = Diagnostic.Create(HandleMessageSignatureArg1Rule, ParameterTypeLocation(methodSymbol, 0),
-                            methodSymbol.Parameters[1].Name, NetworkOptions);
-                        context.ReportDiagnostic(diagnostic);
-                    }
                 }
             }
 
@@ -178,34 +198,31 @@ namespace SenAnalyzer
                         ParameterTypeLocation(methodSymbol, -1), 3, 's');
                     context.ReportDiagnostic(diagnostic);
                 }
-                else
+                ITypeSymbol param0 = methodSymbol.Parameters[0].Type;
+                bool param0TypeMatch = param0.BaseType != null && HasInterface(param0, unionType);
+                if (!param0TypeMatch)
                 {
-                    ITypeSymbol param0 = methodSymbol.Parameters[0].Type;
-                    bool param0TypeMatch = param0.BaseType != null && HasInterface(param0, unionType);
-                    if (!param0TypeMatch)
-                    {
-                        var diagnostic = Diagnostic.Create(HandleMessageSignatureArg0Rule,
-                            ParameterTypeLocation(methodSymbol, 0), methodSymbol.Parameters[0].Name, unionType.Name);
-                        context.ReportDiagnostic(diagnostic);
-                    }
+                    var diagnostic = Diagnostic.Create(HandleMessageSignatureArg0Rule,
+                        ParameterTypeLocation(methodSymbol, 0), methodSymbol.Parameters[0].Name, unionType.Name);
+                    context.ReportDiagnostic(diagnostic);
+                }
 
-                    ITypeSymbol param1 = methodSymbol.Parameters[1].Type;
-                    bool param1TypeMatch = IsOfIPlayer(param1);
-                    if (!param1TypeMatch)
-                    {
-                        var diagnostic = Diagnostic.Create(HandleMessageSignatureArg1Rule,
-                            ParameterTypeLocation(methodSymbol, 1), methodSymbol.Parameters[1].Name, "IPlayer");
-                        context.ReportDiagnostic(diagnostic);
-                    }
+                ITypeSymbol param1 = methodSymbol.Parameters[1].Type;
+                bool param1TypeMatch = IsOfIPlayer(param1);
+                if (!param1TypeMatch)
+                {
+                    var diagnostic = Diagnostic.Create(HandleMessageSignatureArg1Rule,
+                        ParameterTypeLocation(methodSymbol, 1), methodSymbol.Parameters[1].Name, "IPlayer");
+                    context.ReportDiagnostic(diagnostic);
+                }
 
-                    ITypeSymbol param2 = methodSymbol.Parameters[2].Type;
-                    bool param2TypeMatch = param2.Name == NetworkOptions && param2.ContainingAssembly.Name == SenInterfaces;
-                    if (!param2TypeMatch)
-                    {
-                        var diagnostic = Diagnostic.Create(HandleMessageSignatureArg1Rule, ParameterTypeLocation(methodSymbol, 0),
-                            methodSymbol.Parameters[2].Name, NetworkOptions);
-                        context.ReportDiagnostic(diagnostic);
-                    }
+                ITypeSymbol param2 = methodSymbol.Parameters[2].Type;
+                bool param2TypeMatch = param2.Name == NetworkOptions && param2.ContainingAssembly.Name == SenInterfaces;
+                if (!param2TypeMatch)
+                {
+                    var diagnostic = Diagnostic.Create(HandleMessageSignatureArg1Rule, ParameterTypeLocation(methodSymbol, 0),
+                        methodSymbol.Parameters[2].Name, NetworkOptions);
+                    context.ReportDiagnostic(diagnostic);
                 }
             }
         }
