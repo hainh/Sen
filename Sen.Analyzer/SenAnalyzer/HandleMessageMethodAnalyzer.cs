@@ -16,6 +16,7 @@ namespace SenAnalyzer
     {
         public const string HandleMessage = "HandleMessage";
         public const string RenameToHandleMessageDiagnosticId = $"Sen{HandleMessage}Rename";
+        public const string HandleMessageMustBePublicDiagnosticId = $"Sen{HandleMessage}MustBePublic";
         public const string HandleMessageSignatureReturnTypeDiagnosticId = $"Sen{HandleMessage}SignatureReturnType";
         public const string HandleMessageSignatureArg0DiagnosticId = $"Sen{HandleMessage}SignatureArg0";
         public const string HandleMessageSignatureArg1DiagnosticId = $"Sen{HandleMessage}SignatureArg1";
@@ -32,7 +33,7 @@ namespace SenAnalyzer
 
         private const string CategoryNaming = "Naming";
 
-        private static readonly DiagnosticDescriptor HandleMessageNameRule = new DiagnosticDescriptor(
+        private static readonly DiagnosticDescriptor HandleMessageNameRule = new(
             RenameToHandleMessageDiagnosticId,
             $"Rename {HandleMessage} method name",
             $@"Method ""{{0}}"" seem likes a message handler you may want to rename it ""{HandleMessage}""",
@@ -41,43 +42,52 @@ namespace SenAnalyzer
             isEnabledByDefault: true,
             description: $"{HandleMessage} method name may be miss spelled.");
 
-        private static readonly DiagnosticDescriptor HandleMessageSignatureReturnTypeRule = new DiagnosticDescriptor(
+        private static readonly DiagnosticDescriptor HandleMessageMustBePublicRule = new(
+            HandleMessageMustBePublicDiagnosticId,
+            $"{HandleMessage} must be a non-statc public method",
+            $"{HandleMessage} must be a non-statc public method",
+            CategoryNaming,
+            DiagnosticSeverity.Error,
+            isEnabledByDefault: true,
+            description: $"{HandleMessage} must be a non-statc public method.");
+
+        private static readonly DiagnosticDescriptor HandleMessageSignatureReturnTypeRule = new(
             HandleMessageSignatureReturnTypeDiagnosticId,
             $"{HandleMessage} method return type not acceptable",
-            $"{HandleMessage} return type {0} which must be {1}",
+            $"{HandleMessage} return type {{0}} which must be {{1}}",
             CategoryNaming,
             DiagnosticSeverity.Error,
             isEnabledByDefault: true,
             description: $"{HandleMessage} method return type not acceptable.");
 
-        private static readonly DiagnosticDescriptor HandleMessageSignatureArgLengthRule = new DiagnosticDescriptor(
+        private static readonly DiagnosticDescriptor HandleMessageSignatureArgLengthRule = new (
             HandleMessageSignatureArgLengthDiagnosticId,
             $"{HandleMessage} method parameters list length",
-            $"{HandleMessage} method must have exact {0} parameter{1}",
+            $"{HandleMessage} method must have exact {{0}} parameter{{1}}",
             CategoryNaming,
             DiagnosticSeverity.Error,
             isEnabledByDefault: true,
             description: $"{HandleMessage} method parameters list length is not match.");
 
-        private static readonly DiagnosticDescriptor HandleMessageSignatureArg0Rule = new DiagnosticDescriptor(
+        private static readonly DiagnosticDescriptor HandleMessageSignatureArg0Rule = new (
             HandleMessageSignatureArg0DiagnosticId,
             $"{HandleMessage} method argument type is invalid",
-            $"{HandleMessage} method argument {0} must be a MessagePackObject implements {1}",
+            $"{HandleMessage} method argument {{0}} must be a MessagePackObject implements {1}",
             CategoryNaming,
             DiagnosticSeverity.Error,
             isEnabledByDefault: true,
             description: $"{HandleMessage} method argument type is invalid.");
 
-        private static readonly DiagnosticDescriptor HandleMessageSignatureArg1Rule = new DiagnosticDescriptor(
+        private static readonly DiagnosticDescriptor HandleMessageSignatureArg1Rule = new (
             HandleMessageSignatureArg1DiagnosticId,
             $"{HandleMessage} method argument type is invalid",
-            $"{HandleMessage} method argument {0} must be an {1}",
+            $"{HandleMessage} method argument {{0}} must be an {{01}}",
             CategoryNaming,
             DiagnosticSeverity.Error,
             isEnabledByDefault: true,
             description: $"{HandleMessage} method argument type is invalid.");
 
-        private static readonly DiagnosticDescriptor HandleMessageCreateMethodRule = new DiagnosticDescriptor(
+        private static readonly DiagnosticDescriptor HandleMessageCreateMethodRule = new (
             HandleMessageCreateMethodDiagnosticId,
             $"Create mothod {HandleMessage} for a message type",
             $"Create method {HandleMessage}",
@@ -92,6 +102,7 @@ namespace SenAnalyzer
             {
                 return ImmutableArray.Create(
                     HandleMessageNameRule,
+                    HandleMessageMustBePublicRule,
                     HandleMessageSignatureReturnTypeRule,
                     HandleMessageSignatureArg0Rule,
                     HandleMessageSignatureArg1Rule,
@@ -154,6 +165,12 @@ namespace SenAnalyzer
                     context.ReportDiagnostic(diagnostic);
                 }
 
+                if (methodSymbol.IsStatic || methodSymbol.DeclaredAccessibility != Accessibility.Public)
+                {
+                    var diagnostic = Diagnostic.Create(HandleMessageMustBePublicRule, ModifiersLocation(methodSymbol));
+                    context.ReportDiagnostic(diagnostic);
+                }
+
                 ITypeSymbol param0 = methodSymbol.Parameters[0].Type;
                 bool paramTypeMatch = param0.BaseType != null && HasInterface(param0, tUnionDataType);
                 if (!paramTypeMatch)
@@ -191,6 +208,11 @@ namespace SenAnalyzer
                     context.ReportDiagnostic(diagnostic);
                 }
 
+                if (methodSymbol.IsStatic || methodSymbol.DeclaredAccessibility != Accessibility.Public)
+                {
+                    var diagnostic = Diagnostic.Create(HandleMessageMustBePublicRule, ModifiersLocation(methodSymbol));
+                    context.ReportDiagnostic(diagnostic);
+                }
 
                 if (methodSymbol.Parameters.Length != 3)
                 {
@@ -250,6 +272,12 @@ namespace SenAnalyzer
                 return methodNode.ParameterList.GetLocation();
             }
             return methodNode.ParameterList.Parameters[paramIndex].GetLocation();
+        }
+
+        static Location ModifiersLocation(IMethodSymbol methodSymbol)
+        {
+            MethodDeclarationSyntax methodNode = methodSymbol.Locations[0].SourceTree.GetRoot().FindNode(methodSymbol.Locations[0].SourceSpan) as MethodDeclarationSyntax;
+            return Location.Create(methodSymbol.Locations[0].SourceTree, methodNode.Modifiers.Span);
         }
 
         static bool IsOfIPlayer(ITypeSymbol param1)

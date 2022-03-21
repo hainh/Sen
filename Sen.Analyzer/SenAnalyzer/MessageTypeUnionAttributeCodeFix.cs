@@ -18,7 +18,7 @@ namespace SenAnalyzer
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(MessageTypeUnionAttributeCodeFix)), Shared]
     public class MessageTypeUnionAttributeCodeFix : CodeFixProvider
     {
-        private const string title = "Register as a union message type";
+        private const string title = "Register as a Union message type";
 
         public sealed override ImmutableArray<string> FixableDiagnosticIds
         {

@@ -20,7 +20,7 @@ namespace SenAnalyzer
 
         private const string CategoryMessageType = "Message";
 
-        private static readonly DiagnosticDescriptor MessageTypeImplementInterfaceDerectlyRule = new DiagnosticDescriptor(
+        private static readonly DiagnosticDescriptor MessageTypeImplementInterfaceDerectlyRule = new (
             MessageTypeImplementDiagnosticId,
             @"Message type must implement a Union interface derived from ""IUnionData""",
             @"Message type ""{0}"" must implement an interface derived from ""IUnionData""",
@@ -29,7 +29,7 @@ namespace SenAnalyzer
             isEnabledByDefault: true,
             description: "Message type must implement a Union interface.");
 
-        private static readonly DiagnosticDescriptor MessageTypeMustHaveAttributeRule = new DiagnosticDescriptor(
+        private static readonly DiagnosticDescriptor MessageTypeMustHaveAttributeRule = new (
             MessageTypeHasAttributeDiagnosticId,
             @"Message type must have ""MessagePackObject"" attribute",
             @"Message type ""{0}"" must have ""MessagePackObject"" attribute",
@@ -38,7 +38,7 @@ namespace SenAnalyzer
             isEnabledByDefault: true,
             description: "Message type must have \"MessagePackObject\" attribute.");
 
-        private static readonly DiagnosticDescriptor MessageTypeMustBeDeclaredInUnionTypeRule = new DiagnosticDescriptor(
+        private static readonly DiagnosticDescriptor MessageTypeMustBeDeclaredInUnionTypeRule = new (
             MessageTypeMustBeDeclaredInUnionDiagnosticId,
             "Message type must be declared in Union type",
             @"Message type ""{0}"" must be declared in ""{1}"" interface as a UnionAttribute's parameter",
@@ -47,7 +47,7 @@ namespace SenAnalyzer
             isEnabledByDefault: true,
             description: "Message type must be declared in this Union interface.");
 
-        private static readonly DiagnosticDescriptor MessageTypeLackAHandleMessageMethodRule = new DiagnosticDescriptor(
+        private static readonly DiagnosticDescriptor MessageTypeLackAHandleMessageMethodRule = new (
             MessageTypeLackAHandleMessageMethodDiagnosticId,
             $"Message type has no {HandleMessageMethodAnalyzer.HandleMessage} method yet",
             @$"Message type ""{{0}}"" should have a {HandleMessageMethodAnalyzer.HandleMessage} method",
