@@ -1,8 +1,10 @@
 ﻿using MessagePack;
-using Microsoft.Extensions.ObjectPool1;
 using System;
 using System.Collections.Generic;
 using System.Text;
+#if !UNITY
+using Microsoft.Extensions.ObjectPool1;
+#endif
 
 namespace Sen
 {
@@ -13,12 +15,26 @@ namespace Sen
     /// Sending a response from <see cref="IPlayer.HandleMessage(IUnionData, NetworkOptions)"/> the <see cref="NetworkOptions"/> will
     /// be reused.
     /// </summary>
-    public class NetworkOptions
+    public
+#if UNITY
+        struct
+#else
+        class 
+#endif
+        NetworkOptions
     {
+#if UNITY
+        public NetworkOptions()
+        {
+            Secure = false;
+            Reliability = Reliability.ReliableOrdered;
+        }
+#else
         internal NetworkOptions()
         {
             Default();
         }
+#endif
 
         /// <summary>
         /// Option to encrypt the message
@@ -44,6 +60,7 @@ namespace Sen
             Reliability = (Reliability)((serviceCode & 0b_0001_1110) >> 1);
         }
 
+#if !UNITY
         private static readonly DefaultObjectPool<NetworkOptions> _pool = new(new NetworkOptionPoolObjectPolicy(), Environment.ProcessorCount * 10);
         /// <summary>
         /// Create a object from pool
@@ -65,8 +82,10 @@ namespace Sen
         /// </summary>
         /// <param name="networkOptions">Object to be returned</param>
         public static void Return(NetworkOptions networkOptions) => _pool.Return(networkOptions);
+#endif
     }
 
+#if !UNITY
     internal class NetworkOptionPoolObjectPolicy : PooledObjectPolicy<NetworkOptions>
     {
         public override NetworkOptions Create()
@@ -79,4 +98,5 @@ namespace Sen
             return true;
         }
     }
+#endif
 }

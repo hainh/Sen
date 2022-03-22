@@ -106,7 +106,7 @@ namespace Sen.Proxy
                         }
                         else if (listener is TcpListener tcpListener)
                         {
-
+                            pipeline.AddLast(new TcpSocketServerHandler(grainFactory));
                         }
                     }));
             if (IsUnixLike())

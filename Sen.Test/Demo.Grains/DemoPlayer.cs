@@ -12,7 +12,7 @@ namespace Demo.Grains
             return default;
         }
 
-        public ValueTask<IDemoUnionData> HandleMessage2(Hello hello, NetworkOptions networkOptions)
+        public ValueTask<IDemoUnionData> HandleMessage(Hello hello, NetworkOptions networkOptions)
         {
             hello.Message = $"{hello.Message} huh?";
             networkOptions.Reliability = Reliability.Unreliable;
