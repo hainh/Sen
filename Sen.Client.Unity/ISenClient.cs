@@ -1,7 +1,5 @@
 ﻿using Sen.Client.Unity.Abstract;
 using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Sen.Client.Unity
 {
@@ -9,5 +7,6 @@ namespace Sen.Client.Unity
     {
         void HandleData(ArraySegment<byte> data);
         void OnStateChange(ConnectionState state);
+        void SendAuthorityOnConnected();
     }
 }

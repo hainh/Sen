@@ -1,28 +1,33 @@
 ﻿using Sen.Client.Unity.Abstract;
 using System;
-using System.Collections.Generic;
 using System.IO;
 
 namespace Sen.Client.Unity
 {
-    /// <summary>
-    /// Implement public void HandleMessage(TUnionData data, NetworkOption options) for each TUnionData type to handle those messages
-    /// </summary>
-    public abstract class SenClient<TUnionData> : ISenClient where TUnionData : IUnionData
+    public class SenClient<TUnionData> : ISenClient where TUnionData : IUnionData
     {
         private readonly string ipAddress;
         private readonly int port;
+        private readonly IMessageHandler messageHandler;
+        private string username;
+        private string password;
+        private bool authorized;
 
         private AbstractClient client;
 
-        public SenClient(string ipAddress, int port)
+        public SenClient(string ipAddress, int port, IMessageHandler messageHandler)
         {
             this.ipAddress = ipAddress;
             this.port = port;
+            this.messageHandler = messageHandler;
         }
 
-        public void Connect(Protocol protocol)
+        public void Connect(Protocol protocol, string username, string password)
         {
+            System.Diagnostics.Debug.Assert(!string.IsNullOrEmpty(username));
+            System.Diagnostics.Debug.Assert(!string.IsNullOrEmpty(password));
+            this.username = username;
+            this.password = password;
             switch (protocol)
             {
                 case Protocol.Tcp:
@@ -38,25 +43,33 @@ namespace Sen.Client.Unity
             }
         }
 
-        public abstract void OnStateChange(ConnectionState state);
+        public void SendAuthorityOnConnected()
+        {
+            client.Send(new ArraySegment<byte>(System.Text.Encoding.UTF8.GetBytes(username + "@/$/#//" + password)));
+        }
+
+        public void OnStateChange(ConnectionState state)
+        {
+            messageHandler.OnStateChange(state);
+        }
 
         void ISenClient.HandleData(ArraySegment<byte> data)
         {
             byte[] buffer = data.Array;
+            if (!authorized)
+            {
+                if (data.Count == 1 && buffer[data.Offset] == 1)
+                {
+                    authorized = true;
+                    OnStateChange(ConnectionState.Authorized);
+                }
+                return;
+            }
             ushort serviceCode = (ushort)(buffer[data.Offset] | (buffer[data.Offset + 1] << 8));
             NetworkOptions options = new();
-            options.SetValues(serviceCode);
-            dynamic message = MessagePack.MessagePackSerializer.Deserialize<TUnionData>(data.AsMemory().Slice(2, data.Count - 2));
-            ((dynamic)this).HandleMessage(message, options);
-        }
-
-        /// <summary>
-        /// Sample handler, this object is calling <c>`((dynamic)this).HandleMessage(message, options);`</c>
-        /// to resolve HandleMessage on runtime
-        /// </summary>
-        public void HandleMessage(IUnionData data, NetworkOptions options)
-        {
-            Console.WriteLine("No HandleMessage for " + data.GetType().Name);
+            options.SetValues(serviceCode);;
+            var message = MessagePack.MessagePackSerializer.Deserialize<TUnionData>(new ReadOnlyMemory<byte>(buffer, data.Offset + 2, data.Count - 2));
+            messageHandler.HandleMessage(message, options);
         }
 
         readonly MemoryStream memory = new(256 * 1024);

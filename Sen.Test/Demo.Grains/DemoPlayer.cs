@@ -19,6 +19,12 @@ namespace Demo.Grains
             return new ValueTask<IDemoUnionData>(hello);
         }
 
+        public ValueTask<IDemoUnionData> HandleMessage(JoinRoom joinRoom, NetworkOptions networkOptions)
+        {
+            joinRoom.RoomName = "Ok to join " + joinRoom.RoomName;
+            return new ValueTask<IDemoUnionData>(joinRoom);
+        }
+
         protected override ILobby GetGameWorld()
         {
             return GrainFactory.GetGrain<IGameWorld>("GameWorld");

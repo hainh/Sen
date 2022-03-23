@@ -1,4 +1,5 @@
-﻿using DotNetty.Codecs.Http;
+﻿using DotNetty.Codecs;
+using DotNetty.Codecs.Http;
 using DotNetty.Common;
 using DotNetty.Handlers.Tls;
 using DotNetty.Transport.Bootstrapping;
@@ -106,6 +107,8 @@ namespace Sen.Proxy
                         }
                         else if (listener is TcpListener tcpListener)
                         {
+                            pipeline.AddLast("frame-enc", new LengthFieldPrepender(3));
+                            pipeline.AddLast("frame-dec", new LengthFieldBasedFrameDecoder(1 << 23, 0, 3, 0, 3));
                             pipeline.AddLast(new TcpSocketServerHandler(grainFactory));
                         }
                     }));

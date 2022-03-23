@@ -25,6 +25,7 @@ namespace Sen.Client.Unity.Abstract
             Connected = true;
             Connecting = false;
             senClient.OnStateChange(ConnectionState.Connected);
+            senClient.SendAuthorityOnConnected();
         }
 
         protected void OnDisconected()

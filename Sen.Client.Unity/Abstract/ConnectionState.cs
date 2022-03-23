@@ -8,6 +8,7 @@ namespace Sen.Client.Unity.Abstract
     {
         Connecting,
         Connected,
+        Authorized,
         Disconnected,
     }
 }

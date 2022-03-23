@@ -74,22 +74,19 @@ namespace Sen.Proxy
                 IByteBuffer cast = message as IByteBuffer;
                 if (handShaked)
                 {
-                    var buffer = new byte[cast.ReadableBytes - 4];
-                    cast.ReadBytes(discard4Bytes);
+                    var buffer = new byte[cast.ReadableBytes];
                     cast.ReadBytes(buffer);
                     var dataWriteBack = await _proxyConnection.OnReceivedData(buffer.AsImmutable());
                     if (dataWriteBack.Value != null)
                     {
-                        byte[] payloadSize = new byte[4];
-                        TelepathyUtils.IntToBytesBigEndianNonAlloc(dataWriteBack.Value.Length, payloadSize);
-                        var result = Unpooled.WrappedBuffer(payloadSize, dataWriteBack.Value);
+                        var result = Unpooled.WrappedBuffer(dataWriteBack.Value);
                         await ctx.WriteAndFlushAsync(result);
                     }
                 }
                 else
                 {
-                    var connectionString = Encoding.UTF8.GetString(cast.Array, cast.ArrayOffset + 6, cast.ReadableBytes - 6);
-                    var uriComponent = connectionString.Split('/', StringSplitOptions.RemoveEmptyEntries);
+                    var connectionString = Encoding.UTF8.GetString(cast.Array, cast.ArrayOffset, cast.ReadableBytes);
+                    var uriComponent = connectionString.Split("@/$/#//", 2);
                     IPEndPoint remoteIpEndPoint = ctx.Channel.RemoteAddress as IPEndPoint;
                     ClientObserverTcp clientObserverTcp = new(ctx);
                     //Create the grain to communicate with the server(silo)
@@ -97,7 +94,11 @@ namespace Sen.Proxy
                     IClientObserver observer = await _playerFactory.CreateObserver(clientObserverTcp);
                     handShaked = await _proxyConnection.InitConnection(ctx.Channel.LocalAddress.ToString(), remoteIpEndPoint.ToString(),
                             username: uriComponent[0], accessToken: uriComponent[1], observer);
-                    if (!handShaked)
+                    if (handShaked)
+                    {
+                        await ctx.WriteAndFlushAsync(ctx.Allocator.Buffer(1).WriteByte(1));
+                    }
+                    else
                     {
                         await ctx.CloseAsync();
                     }

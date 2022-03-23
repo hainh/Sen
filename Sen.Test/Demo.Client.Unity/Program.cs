@@ -11,19 +11,20 @@ public class Program
 {
     public static void Main(string[] _)
     {
-        var client = new UnityClient("127.0.0.1", 6666);
-        client.Connect(Protocol.Tcp);
+        new MessageHandler();
+        //timer.Stop();
+        //timer.Dispose();
+    }
+}
 
-        //int clientFrequency = 1000;
-        //var timer = new System.Timers.Timer(1000.0 / clientFrequency);
-        //timer.Elapsed += (args1, args2) =>
-        //{
-        //    client.Tick(1);
-        //};
+public class MessageHandler : IMessageHandler
+{
+    private SenClient<IDemoUnionData> client;
 
-        //timer.AutoReset = true;
-        //timer.Enabled = true;
-
+    public MessageHandler()
+    {
+        client = new SenClient<IDemoUnionData>("127.0.0.1", 6666, this);
+        client.Connect(Protocol.Tcp, "demo", "?????");
         Task.Run(async () =>
         {
             while (true)
@@ -32,44 +33,49 @@ public class Program
                 client.Tick(1);
             }
         });
-
-        Task.Run(async () =>
-        {
-            await Task.Delay(1000);
-            client.Send(new Hello() { Message = "Unity client day!" }, new Sen.NetworkOptions());
-        });
-
         Console.ReadKey();
         client.Disconnect();
-        //timer.Stop();
-        //timer.Dispose();
-    }
-}
-
-public class UnityClient : SenClient<IDemoUnionData>
-{
-    public UnityClient(string ipAddress, int port) : base(ipAddress, port)
-    {
     }
 
-    public override void OnStateChange(ConnectionState state)
+    public void HandleMessage(Hello data, NetworkOptions options)
     {
-        Console.WriteLine("State changed: " + state);
+        Console.WriteLine("Hello from server: " + data.Message);
+        client.Send(new JoinRoom() { RoomName = "World" }, options);
+    }
+
+    int count = 0;
+    public void HandleMessage(JoinRoom joinRoom, NetworkOptions options)
+    {
+        Console.WriteLine("Server: " + joinRoom.RoomName);
+        client.Send(new Hello() { Message = "Count " + (count++) }, options);
+    }
+
+    public void HandleMessage(IDemoUnionData message, NetworkOptions options)
+    {
+        Console.WriteLine("No message handler for " + message.GetType().FullName);
+    }
+
+    public void HandleMessage(IUnionData message, NetworkOptions networkOptions)
+    {
+        ((dynamic)this).HandleMessage((Hello)message, networkOptions);
+    }
+
+    public void OnStateChange(ConnectionState state)
+    {
+        Console.WriteLine(state.ToString());
         switch (state)
         {
             case ConnectionState.Connecting:
                 break;
             case ConnectionState.Connected:
-                Send(new ArraySegment<byte>(System.Text.Encoding.UTF8.GetBytes("demo/token1")), new Sen.NetworkOptions());
+                break;
+            case ConnectionState.Authorized:
+                client.Send(new Hello() { Message = "Unity client day!" }, new Sen.NetworkOptions());
                 break;
             case ConnectionState.Disconnected:
                 break;
             default:
                 break;
         }
-    }
-    public void HandleMessage(Hello data, NetworkOptions options)
-    {
-
     }
 }

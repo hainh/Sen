@@ -15,26 +15,17 @@ namespace Sen
     /// Sending a response from <see cref="IPlayer.HandleMessage(IUnionData, NetworkOptions)"/> the <see cref="NetworkOptions"/> will
     /// be reused.
     /// </summary>
-    public
-#if UNITY
-        struct
-#else
-        class 
-#endif
-        NetworkOptions
+    public class NetworkOptions
     {
 #if UNITY
-        public NetworkOptions()
-        {
-            Secure = false;
-            Reliability = Reliability.ReliableOrdered;
-        }
+        public
 #else
-        internal NetworkOptions()
+        internal
+#endif
+        NetworkOptions()
         {
             Default();
         }
-#endif
 
         /// <summary>
         /// Option to encrypt the message
