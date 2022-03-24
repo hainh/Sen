@@ -107,8 +107,8 @@ namespace Sen.Proxy
                         }
                         else if (listener is TcpListener tcpListener)
                         {
-                            pipeline.AddLast("frame-enc", new LengthFieldPrepender(3));
-                            pipeline.AddLast("frame-dec", new LengthFieldBasedFrameDecoder(1 << 23, 0, 3, 0, 3));
+                            pipeline.AddLast("frame-enc", new LengthFieldPrepender(4));
+                            pipeline.AddLast("frame-dec", new LengthFieldBasedFrameDecoder(1 << 26, 0, 4, 0, 4));
                             pipeline.AddLast(new TcpSocketServerHandler(grainFactory));
                         }
                     }));

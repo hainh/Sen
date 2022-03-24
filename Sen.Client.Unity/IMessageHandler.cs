@@ -1,6 +1,5 @@
-﻿using Sen.Client.Unity.Abstract;
-
-namespace Sen.Client.Unity
+﻿
+namespace Sen
 {
     public interface IMessageHandler
     {

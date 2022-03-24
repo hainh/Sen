@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace Sen.Client.Unity.Abstract
+namespace Sen
 {
     /// <summary>
     /// Create public void HandleMessage(TUnionData data, NetworkOption options) for each TUnionData type to handle those messages

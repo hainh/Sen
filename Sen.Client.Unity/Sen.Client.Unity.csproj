@@ -19,7 +19,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="DotNetty.Handlers" Version="0.7.2" />
     <PackageReference Include="MessagePack" Version="2.3.85" />
   </ItemGroup>
 

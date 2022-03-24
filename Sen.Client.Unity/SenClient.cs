@@ -1,8 +1,7 @@
-﻿using Sen.Client.Unity.Abstract;
-using System;
+﻿using System;
 using System.IO;
 
-namespace Sen.Client.Unity
+namespace Sen
 {
     public class SenClient<TUnionData> : ISenClient where TUnionData : IUnionData
     {
@@ -14,6 +13,10 @@ namespace Sen.Client.Unity
         private bool authorized;
 
         private AbstractClient client;
+
+        private int dataCount = 0;
+        private int messCount = 0;
+        DateTime lastUpdated = DateTime.UtcNow;
 
         public SenClient(string ipAddress, int port, IMessageHandler messageHandler)
         {
@@ -55,6 +58,8 @@ namespace Sen.Client.Unity
 
         void ISenClient.HandleData(ArraySegment<byte> data)
         {
+            dataCount += data.Count;
+            ++messCount;
             byte[] buffer = data.Array;
             if (!authorized)
             {
@@ -66,13 +71,13 @@ namespace Sen.Client.Unity
                 return;
             }
             ushort serviceCode = (ushort)(buffer[data.Offset] | (buffer[data.Offset + 1] << 8));
-            NetworkOptions options = new();
+            NetworkOptions options = new NetworkOptions();
             options.SetValues(serviceCode);;
             var message = MessagePack.MessagePackSerializer.Deserialize<TUnionData>(new ReadOnlyMemory<byte>(buffer, data.Offset + 2, data.Count - 2));
             messageHandler.HandleMessage(message, options);
         }
 
-        readonly MemoryStream memory = new(256 * 1024);
+        readonly MemoryStream memory = new MemoryStream(256 * 1024);
 
         public void Send(TUnionData message, NetworkOptions options)
         {
@@ -99,6 +104,14 @@ namespace Sen.Client.Unity
         public void Tick(int processLimit)
         {
             client.Tick(processLimit);
+            var span = (DateTime.UtcNow - lastUpdated).TotalSeconds;
+            if (span >= 1)
+            {
+                Console.WriteLine($"Data Speed {dataCount / span / 1024}KBps, {messCount / span}mps");
+                lastUpdated = DateTime.UtcNow;
+                messCount = 0;
+                dataCount = 0;
+            }
         }
 
         public void Disconnect()

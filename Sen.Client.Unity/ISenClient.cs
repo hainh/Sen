@@ -1,7 +1,6 @@
-﻿using Sen.Client.Unity.Abstract;
-using System;
+﻿using System;
 
-namespace Sen.Client.Unity
+namespace Sen
 {
     public interface ISenClient
     {

@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 
-namespace Sen.Client.Unity.Abstract
+namespace Sen
 {
     internal class TelepathyClientTCP : AbstractClient
     {
@@ -10,7 +8,7 @@ namespace Sen.Client.Unity.Abstract
 
         public TelepathyClientTCP(ISenClient senClient) : base(senClient)
         {
-            rawClient = new Telepathy.Client(256 * 1024);
+            rawClient = new Telepathy.Client(1024 * 1024);
             rawClient.OnConnected += OnConnected;
             rawClient.OnDisconnected += OnDisconected;
             rawClient.OnData += OnData;

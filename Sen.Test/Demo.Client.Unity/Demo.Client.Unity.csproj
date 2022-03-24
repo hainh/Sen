@@ -10,6 +10,7 @@
   <ItemGroup>
     <Compile Include="..\Demo.Interfaces\IDemoUnionData.cs" Link="IDemoUnionData.cs" />
     <Compile Include="..\Demo.Interfaces\Message\Messages.cs" Link="Messages.cs" />
+
   </ItemGroup>
 
   <ItemGroup>
