@@ -12,31 +12,19 @@ namespace Sen.Server
 {
     public class SenServer
     {
-        public static async Task<int> Run()
+        public static async Task<int> Run(Action<Microsoft.Extensions.Hosting.HostBuilderContext, ISiloBuilder> setupOrleans)
         {
             try
             {
                 var host = new HostBuilder()
+#if DEBUG
                     .UseEnvironment(Environments.Development)
+#else
+                    .UseEnvironment(Environments.Production)
+#endif
                     .UseOrleans((context, siloBuilder) =>
                     {
-                        var isDevelopment = context.HostingEnvironment.IsDevelopment();
-                        siloBuilder
-                            .Configure<ConnectionOptions>(options =>
-                            {
-                                options.ProtocolVersion = Orleans.Runtime.Messaging.NetworkProtocolVersion.Version2;
-                            })
-                            .AddSimpleMessageStreamProvider("SMSProvider")
-                            .AddMemoryGrainStorageAsDefault();
-
-                        if (isDevelopment)
-                        {
-                            siloBuilder.UseLocalhostClustering(serviceId: "SenServer", clusterId: "dev");
-                        }
-                        else
-                        {
-                            siloBuilder.UseLocalhostClustering(serviceId: "SenServer", clusterId: "dev");
-                        }
+                        setupOrleans(context, siloBuilder);
                     })
                     .ConfigureLogging(logging => logging.AddNLog())
                     .Build();
