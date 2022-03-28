@@ -12,6 +12,11 @@ namespace Sen.Server
 {
     public class SenServer
     {
+        static SenServer()
+        {
+            Utilities.InternalLogger.LoggerFactory = new NLogLoggerFactory();
+        }
+
         public static async Task<int> Run(Action<Microsoft.Extensions.Hosting.HostBuilderContext, ISiloBuilder> setupOrleans)
         {
             try

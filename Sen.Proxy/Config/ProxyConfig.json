@@ -1,0 +1,12 @@
+﻿{
+	"WebsocketListeners": [
+		{
+			"Port": 8081
+		}
+	],
+	"TcpListeners": [
+		{
+			"Port": 6666
+		}
+	]
+}

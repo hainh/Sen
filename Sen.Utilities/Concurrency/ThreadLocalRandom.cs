@@ -8,9 +8,7 @@ namespace Sen.Utilities
     {
         static ThreadSafeRandom()
         {
-            var buf = new byte[4];
-            new System.Security.Cryptography.RNGCryptoServiceProvider().GetBytes(buf);
-            _seed = BitConverter.ToInt32(buf, 0);
+            _seed = System.Security.Cryptography.RandomNumberGenerator.GetInt32(int.MaxValue);
         }
 
         private static int _seed;

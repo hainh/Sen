@@ -33,7 +33,14 @@ namespace Sen.Utilities.Configuration
         public T Load()
         {
             byte[] data = File.ReadAllBytes(FullPath);
-            JsonDocument jsonDoc = JsonDocument.Parse(data);
+            // discard BOM
+            int discard = data[0] == 0xEF && data[1] == 0xBB && data[2] == 0xBF ? 3 : 0;
+            var option = new JsonDocumentOptions() 
+            { 
+                AllowTrailingCommas = true,
+                CommentHandling = JsonCommentHandling.Skip
+            };
+            JsonDocument jsonDoc = JsonDocument.Parse(new ReadOnlyMemory<byte>(data, discard, data.Length - discard), option);
             this.Load(jsonDoc.RootElement);
             return (T)this;
         }

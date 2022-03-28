@@ -22,6 +22,8 @@ namespace Sen.Proxy
 
         public IPlayer CreatePlayer(string playerId) => OrleansClusterClient.GetGrain<TPlayerGrain>(playerId);
 
+        public bool Connected { get; private set; }
+
         Task<IClientObserver> IPlayerFactory.CreateObserver<T>(T observer)
         {
             return OrleansClusterClient.CreateObjectReference<IClientObserver>(observer);
@@ -39,6 +41,7 @@ namespace Sen.Proxy
 
                 senProxy.SetGrainFactory(this);
                 await OrleansClusterClient.Connect(RetryFilter);
+                Connected = true;
                 string message = "Proxy successfully connect to silo host";
                 Console.WriteLine(message);
                 logger.LogInformation(message);
