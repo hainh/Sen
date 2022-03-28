@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Orleans.Runtime;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
@@ -8,7 +9,7 @@ namespace Sen
     public delegate void RoomChanged(IRoom room);
 
     /// <inheritdoc/>
-    public abstract class AbstractLobby<TGrainState> : AbstractRoom<TGrainState>, ILobby where TGrainState : ILobbyState
+    public abstract class AbstractLobby<TState> : AbstractRoom<TState>, ILobby where TState : ILobbyState
     {
         public event RoomChanged RoomAdded;
 
@@ -16,9 +17,8 @@ namespace Sen
 
         protected IList<IRoom> _rooms;
 
-        public AbstractLobby()
+        public AbstractLobby(IPersistentState<TState> persistent) : base(persistent)
         {
-            //State.PlayerLimit = int.MaxValue;
         }
 
         public ValueTask<IList<IRoom>> GetRooms() => new(_rooms);

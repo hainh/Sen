@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Sen
 {
-    public class BaseScheduleGrain<TGrainState> : Grain<TGrainState>
+    public class BaseScheduleGrain : Grain
     {
         public static readonly TimeSpan INFINITE_TIMESPAN = TimeSpan.FromMilliseconds(-1);
         /// <summary>

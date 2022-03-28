@@ -1,5 +1,6 @@
 ﻿using Demo.Interfaces;
 using Demo.Interfaces.Message;
+using Orleans.Runtime;
 using Sen;
 using System.Threading.Tasks;
 
@@ -7,6 +8,10 @@ namespace Demo.Grains
 {
     public class DemoPlayer : AbstractPlayer<IDemoUnionData, PlayerState>, IDemoPlayer
     {
+        public DemoPlayer([PersistentState("player")]IPersistentState<PlayerState> profile) : base(profile)
+        {
+        }
+
         public override ValueTask OnDisconnect()
         {
             return default;

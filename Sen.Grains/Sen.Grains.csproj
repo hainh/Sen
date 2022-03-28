@@ -11,6 +11,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.Orleans.Core.Abstractions" Version="3.6.0" />
+    <PackageReference Include="Microsoft.Orleans.Runtime.Abstractions" Version="3.6.0" />
     <PackageReference Include="NLog.Extensions.Logging" Version="1.7.4" />
     <PackageReference Include="NLog.Schema" Version="4.7.14" />
   </ItemGroup>

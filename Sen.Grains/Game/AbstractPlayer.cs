@@ -2,6 +2,7 @@
 using Microsoft.Extensions.ObjectPool1;
 using Orleans;
 using Orleans.Concurrency;
+using Orleans.Runtime;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -20,26 +21,26 @@ namespace Sen
     /// </summary>
     /// <typeparam name="TUnionData">MessagePack's Union interface root of all message types</typeparam>
     /// <typeparam name="TGrainState">Grain state</typeparam>
-    public abstract class AbstractPlayer<TUnionData, TGrainState> : BaseScheduleGrain<TGrainState>, IPlayer where TGrainState : IPlayerState
+    public abstract class AbstractPlayer<TUnionData, TState> : BaseScheduleGrain, IPlayer where TState : IPlayerState
          where TUnionData : IUnionData
     {
-        private IClientObserver clientObserver;
+        private IClientObserver _clientObserver;
 
         public string LocalAddress { get; private set; }
         public string RemoteAddress { get; private set; }
-        public ValueTask<IRoom> GetRoom() => new ValueTask<IRoom>(State.Room);
+        public ValueTask<IRoom> GetRoom() => new(profile.State.Room);
 
-        public string Name => State.Name;
+        public string Name => profile.State.Name;
 
-        public ValueTask<string> GetName() => new ValueTask<string>(Name);
+        public ValueTask<string> GetName() => new(Name);
 
         public ValueTask SetRoomJoined(IRoom room)
         {
-            State.Room = room;
+            profile.State.Room = room;
             return default;
         }
 
-        public ValueTask<bool> IsBot() => new ValueTask<bool>(State.IsBot);
+        public ValueTask<bool> IsBot() => new(profile.State.IsBot);
 
         /// <summary>
         /// Get a game world instance.
@@ -56,6 +57,12 @@ namespace Sen
 
         private IPlayer _me = null;
         protected IPlayer Me => _me ??= this.AsReference<IPlayer>();
+        protected readonly IPersistentState<TState> profile;
+
+        public AbstractPlayer(IPersistentState<TState> profile)
+        {
+            this.profile = profile;
+        }
 
         /// <inheritdoc />
         public virtual async ValueTask<bool> InitConnection(string local, string remote, string username, string accessToken, IClientObserver observer)
@@ -65,11 +72,11 @@ namespace Sen
                 return true;
             }
 
-            if (State.Name == null)
+            if (profile.State.Name == null)
             {
-                State.Name = username;
+                profile.State.Name = username;
             }
-            else if (State.Name != username)
+            else if (profile.State.Name != username)
             {
                 return false;
             }
@@ -81,7 +88,7 @@ namespace Sen
                 return false;
             }
 
-            clientObserver = observer;
+            _clientObserver = observer;
             ILobby gameWorld = GetGameWorld();
             await gameWorld.JoinRoom(Me, Name);
             await SetRoomJoined(gameWorld);
@@ -99,9 +106,9 @@ namespace Sen
         /// <returns>A <see cref="IUnionData"/> will be serialized and returned to game client or null to send nothing</returns>
         protected async ValueTask<TUnionData> HandleMessage(TUnionData message, NetworkOptions networkOptions)
         {
-            if (State.Room != null)
+            if (profile.State.Room != null)
             {
-                return (TUnionData)await State.Room.HandleRoomMessage(message, Me, networkOptions);
+                return (TUnionData)await profile.State.Room.HandleRoomMessage(message, Me, networkOptions);
             }
             return default;
         }
@@ -136,7 +143,7 @@ namespace Sen
 
         public ValueTask SendData(Immutable<byte[]> raw)
         {
-            clientObserver?.ReceiveData(raw);
+            _clientObserver?.ReceiveData(raw);
             return ValueTask.CompletedTask;
         }
 

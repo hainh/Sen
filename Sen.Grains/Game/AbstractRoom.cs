@@ -1,4 +1,5 @@
 ﻿using Orleans;
+using Orleans.Runtime;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -13,7 +14,7 @@ namespace Sen
     /// handle each message type from player
     /// </para>
     /// </summary>
-    public abstract class AbstractRoom<TGrainState> : BaseScheduleGrain<TGrainState>, IRoom where TGrainState : IRoomState
+    public abstract class AbstractRoom<TState> : BaseScheduleGrain, IRoom where TState : IRoomState
     {
         public event PlayerChange PlayerJoined;
 
@@ -23,24 +24,30 @@ namespace Sen
 
         public event PlayerChange PlayerLeaving;
 
-        public ValueTask<long> GetMatchId() => new(State.MatchId);
+        public ValueTask<long> GetMatchId() => new(persistent.State.MatchId);
 
-        public ValueTask<string> GetRoomName() => new(State.RoomName);
+        public ValueTask<string> GetRoomName() => new(persistent.State.RoomName);
 
-        public ValueTask<string> GetPassword() => new(State.Password);
+        public ValueTask<string> GetPassword() => new(persistent.State.Password);
 
-        public ValueTask<int> GetPlayerLimit() => new(State.PlayerLimit);
+        public ValueTask<int> GetPlayerLimit() => new(persistent.State.PlayerLimit);
 
-        public ValueTask<ILobby> GetParent() => new(State.Parent);
+        public ValueTask<ILobby> GetParent() => new(persistent.State.Parent);
 
         public virtual ValueTask<bool> IsLobby() => new(false);
 
-        public ValueTask<bool> IsFull() => new(State.Players.Count >= State.PlayerLimit);
+        public ValueTask<bool> IsFull() => new(persistent.State.Players.Count >= persistent.State.PlayerLimit);
 
-        public ValueTask<ICollection<IPlayer>> GetPlayers() => new(State.Players.Values);
+        public ValueTask<ICollection<IPlayer>> GetPlayers() => new(persistent.State.Players.Values);
 
         private IRoom _me = null;
         protected IRoom Me => _me ??= this.AsReference<IRoom>();
+        protected readonly IPersistentState<TState> persistent;
+
+        public AbstractRoom(IPersistentState<TState> persistent)
+        {
+            this.persistent = persistent;
+        }
 
         /// <summary>
         /// Handle a message object. Inherited class create its own overloaded version to
@@ -68,10 +75,10 @@ namespace Sen
         {
             if (await IsFull())
             {
-                if (!State.Players.ContainsKey(playerName))
+                if (!persistent.State.Players.ContainsKey(playerName))
                 {
                     OnPlayerJoining(player);
-                    State.Players.Add(playerName, player);
+                    persistent.State.Players.Add(playerName, player);
                     OnPlayerJoined(player);
                     return true;
                 }
@@ -82,12 +89,12 @@ namespace Sen
 
         protected virtual async ValueTask<bool> RemovePlayer(IPlayer player)
         {
-            return State.Players.Remove(await player.GetName());
+            return persistent.State.Players.Remove(await player.GetName());
         }
 
         public ValueTask SetParent(ILobby room)
         {
-            State.Parent = room;
+            persistent.State.Parent = room;
             return default;
         }
 
