@@ -14,9 +14,6 @@ namespace Sen.Proxy
     public class OrleansProxyClient<TPlayerGrain> : IPlayerFactory where TPlayerGrain : IPlayer, IGrainWithStringKey
     {
         static readonly ILogger<OrleansProxyClient<TPlayerGrain>> logger = SenProxy.LoggerFactory.CreateLogger<OrleansProxyClient<TPlayerGrain>>();
-        public const string SMSProvider = "SMSProvider";
-
-        public const string ProxyStream = "ProxyStream";
 
         public IClusterClient OrleansClusterClient { get; private set; }
 
@@ -29,15 +26,15 @@ namespace Sen.Proxy
             return OrleansClusterClient.CreateObjectReference<IClientObserver>(observer);
         }
 
-        public async Task<int> RunOrleansProxyClient(ISenProxy senProxy, IConsoleCommand consoleCommand = null)
+        public async Task<int> RunOrleansProxyClient(ISenProxy senProxy, Action<IClientBuilder> configClient, IConsoleCommand consoleCommand = null)
         {
             try
             {
                 // Configure a client and connect to the service.
-                OrleansClusterClient = new ClientBuilder()
-                    .UseLocalhostClustering(serviceId: "SenServer", clusterId: "dev")
-                    .ConfigureLogging(logging => logging.AddNLog())
-                    .Build();
+                var builder = new ClientBuilder()
+                    .ConfigureLogging(logging => logging.AddNLog());
+                configClient(builder);
+                OrleansClusterClient = builder.Build();
 
                 senProxy.SetGrainFactory(this);
                 await OrleansClusterClient.Connect(RetryFilter);
@@ -65,6 +62,7 @@ namespace Sen.Proxy
             catch (Exception e)
             {
                 Console.WriteLine(e);
+                logger.LogError(e.ToString());
                 Console.ReadKey();
                 return 1;
             }

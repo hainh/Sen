@@ -39,5 +39,10 @@ namespace Demo.Grains
         {
             return new ValueTask<bool>(true);
         }
+
+        public override Task OnActivateAsync()
+        {
+            return base.OnActivateAsync();
+        }
     }
 }

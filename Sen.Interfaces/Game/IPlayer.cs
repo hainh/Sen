@@ -11,19 +11,23 @@ namespace Sen
         /// </summary>
         ValueTask<string> GetName();
         /// <summary>
-        /// Get room grain id
+        /// Get current room
         /// </summary>
-        //ValueTask<IRoom> Room { get; }
         ValueTask<IRoom> GetRoom();
         /// <summary>
         /// Set Room this player is living
         /// </summary>
         /// <param name="room">Room this player'd joined</param>
-        ValueTask SetRoomJoined(IRoom room);
+        /// <returns>true if joined</returns>
+        ValueTask<bool> JoinRoom(IRoom room);
+        /// <summary>
+        /// Leave current room
+        /// </summary>
+        /// <returns>true if has room to leave</returns>
+        ValueTask<bool> LeaveRoom();
         /// <summary>
         /// Is this player disconnected and became a bot
         /// </summary>
-        //ValueTask<bool> IsBot { get; }
         ValueTask<bool> IsBot();
         /// <summary>
         /// Start the connection. Called by client or proxy server to initialize connection infomation.

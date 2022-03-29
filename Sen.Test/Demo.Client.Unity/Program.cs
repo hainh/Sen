@@ -76,7 +76,7 @@ public class MessageHandler : IMessageHandler
             case ConnectionState.Connected:
                 break;
             case ConnectionState.Authorized:
-                client.Send(new Hello() { Message = "Unity client day!" }, new Sen.NetworkOptions());
+                //client.Send(new Hello() { Message = "Unity client day!" }, new Sen.NetworkOptions());
                 break;
             case ConnectionState.Disconnected:
                 break;

@@ -6,6 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\eog-server\Orleans.Providers.MongoDB\Orleans.Providers.MongoDB.csproj" />
     <ProjectReference Include="..\..\JsonDataGenerator\JsonDataGenerator.csproj" />
     <ProjectReference Include="..\..\Sen.Server\Sen.Server.csproj" />
     <ProjectReference Include="..\Demo.Grains\Demo.Grains.csproj" />

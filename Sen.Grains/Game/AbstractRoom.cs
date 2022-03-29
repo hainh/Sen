@@ -49,6 +49,21 @@ namespace Sen
             this.persistent = persistent;
         }
 
+        public override Task OnActivateAsync()
+        {
+            if (persistent.State.Players == null)
+            {
+                persistent.State.Players = new Dictionary<string, IPlayer>();
+                persistent.State.PlayerLimit = 100;
+            }
+            return base.OnActivateAsync();
+        }
+
+        public override Task OnDeactivateAsync()
+        {
+            return persistent.WriteStateAsync();
+        }
+
         /// <summary>
         /// Handle a message object. Inherited class create its own overloaded version to
         /// handle a specific message.
@@ -73,17 +88,31 @@ namespace Sen
 
         public async ValueTask<bool> JoinRoom(IPlayer player, string playerName)
         {
-            if (await IsFull())
+            if (!await IsFull())
             {
                 if (!persistent.State.Players.ContainsKey(playerName))
                 {
                     OnPlayerJoining(player);
                     persistent.State.Players.Add(playerName, player);
                     OnPlayerJoined(player);
+                    await persistent.WriteStateAsync();
                     return true;
                 }
             }
 
+            return false;
+        }
+
+        public async ValueTask<bool> LeaveRoom(IPlayer player, string playerName)
+        {
+            if (persistent.State.Players.ContainsKey(playerName))
+            {
+                OnPlayerLeaving(player);
+                persistent.State.Players.Remove(playerName);
+                OnPlayerLeft(player);
+                await persistent.WriteStateAsync();
+                return true;
+            }
             return false;
         }
 

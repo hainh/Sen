@@ -34,10 +34,30 @@ namespace Sen
 
         public ValueTask<string> GetName() => new(Name);
 
-        public ValueTask SetRoomJoined(IRoom room)
+        public async ValueTask<bool> JoinRoom(IRoom room)
         {
-            profile.State.Room = room;
-            return default;
+            if (profile.State.Room != null)
+            {
+                await LeaveRoom();
+            }
+            if (await room.JoinRoom(Me, Name))
+            {
+                profile.State.Room = room;
+                await profile.WriteStateAsync();
+                return true;
+            }
+            return false;
+        }
+
+        public ValueTask<bool> LeaveRoom()
+        {
+            if (profile.State.Room == null)
+            {
+                return ValueTask.FromResult(false);
+            }
+            profile.State.Room = null;
+            profile.WriteStateAsync();
+            return profile.State.Room.LeaveRoom(Me, Name);
         }
 
         public ValueTask<bool> IsBot() => new(profile.State.IsBot);
@@ -91,7 +111,7 @@ namespace Sen
             _clientObserver = observer;
             ILobby gameWorld = GetGameWorld();
             await gameWorld.JoinRoom(Me, Name);
-            await SetRoomJoined(gameWorld);
+            await JoinRoom(gameWorld);
             return true;
         }
 
@@ -183,6 +203,11 @@ namespace Sen
         public override Task OnActivateAsync()
         {
             return Task.CompletedTask;
+        }
+
+        public override Task OnDeactivateAsync()
+        {
+            return profile.WriteStateAsync();
         }
 
         private static readonly ObjectPool<MemoryStream> _memStreamPool = 

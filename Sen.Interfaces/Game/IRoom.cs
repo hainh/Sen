@@ -20,6 +20,7 @@ namespace Sen
         ValueTask SetParent(ILobby room);
 
         ValueTask<bool> JoinRoom(IPlayer player, string playerName);
+        ValueTask<bool> LeaveRoom(IPlayer player, string playerName);
 
         ValueTask<IUnionData> HandleRoomMessage(IUnionData message, IPlayer sender, NetworkOptions networkOptions);
     }

@@ -1,4 +1,5 @@
 ﻿using Demo.Interfaces;
+using Orleans;
 using Sen.Proxy;
 using Sen.Utilities.Console;
 using System;
@@ -10,8 +11,21 @@ namespace DemoProxy
     {
         public static async Task<int> Main(string[] args)
         {
-            return await new OrleansProxyClient<IDemoPlayer>()
-                .RunOrleansProxyClient(new SenProxy(), new Commander());
+            var client = new OrleansProxyClient<IDemoPlayer>();
+            _ = Task.Run(async () =>
+            {
+                while (!client.Connected)
+                {
+                    await Task.Delay(200);
+                }
+
+                await Task.Delay(1000);
+
+                var player = client.OrleansClusterClient.GetGrain<IDemoPlayer>("demo");
+
+                Console.WriteLine(await player.IsBot());
+            });
+            return await client.RunOrleansProxyClient(new SenProxy(), builder => builder.UseLocalhostClustering(serviceId: "SenServer", clusterId: "dev"), new Commander());
         }
     }
 

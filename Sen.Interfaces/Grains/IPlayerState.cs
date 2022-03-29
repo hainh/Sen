@@ -10,7 +10,5 @@ namespace Sen
         string Name { get; set; }
         IRoom Room { get; set; }
         bool IsBot { get; set; }
-        IPEndPoint LocalAddress { get; set; }
-        IPEndPoint RemoteAddress { get; set; }
     }
 }
