@@ -24,6 +24,7 @@ namespace SenAnalyzer
                     HandleMessageMethodAnalyzer.HandleMessageSignatureReturnTypeDiagnosticId,
                     HandleMessageMethodAnalyzer.HandleMessageSignatureArg0DiagnosticId,
                     HandleMessageMethodAnalyzer.HandleMessageSignatureArg1DiagnosticId,
+                    HandleMessageMethodAnalyzer.HandleMessageSignatureArg2DiagnosticId,
                     HandleMessageMethodAnalyzer.HandleMessageSignatureArgLengthDiagnosticId);
             }
         }

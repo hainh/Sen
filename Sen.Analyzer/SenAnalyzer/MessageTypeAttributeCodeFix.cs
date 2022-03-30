@@ -13,6 +13,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Rename;
 using Microsoft.CodeAnalysis.Text;
 using SenAnalyzer.Utils;
+using Microsoft.CodeAnalysis.FindSymbols;
 
 namespace SenAnalyzer
 {

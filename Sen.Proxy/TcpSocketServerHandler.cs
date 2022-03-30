@@ -55,7 +55,7 @@ namespace Sen.Proxy
         //private PeerBase _peerBase;
         //private readonly QueueBuffer<byte> buffer;
 
-        static readonly ILogger<TcpSocketServerHandler> logger = SenProxy.LoggerFactory.CreateLogger<TcpSocketServerHandler>();
+        static readonly ILogger<TcpSocketServerHandler> logger = Logger.LoggerFactory.CreateLogger<TcpSocketServerHandler>();
         readonly IPlayerFactory _playerFactory;
         IPlayer _proxyConnection;
 

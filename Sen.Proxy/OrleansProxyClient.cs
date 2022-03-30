@@ -13,7 +13,7 @@ namespace Sen.Proxy
 {
     public class OrleansProxyClient<TPlayerGrain> : IPlayerFactory where TPlayerGrain : IPlayer, IGrainWithStringKey
     {
-        static readonly ILogger<OrleansProxyClient<TPlayerGrain>> logger = SenProxy.LoggerFactory.CreateLogger<OrleansProxyClient<TPlayerGrain>>();
+        static readonly ILogger<OrleansProxyClient<TPlayerGrain>> logger = Logger.LoggerFactory.CreateLogger<OrleansProxyClient<TPlayerGrain>>();
 
         public IClusterClient OrleansClusterClient { get; private set; }
 

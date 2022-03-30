@@ -34,6 +34,7 @@ namespace Sen.Server
                     .ConfigureLogging(logging => logging.AddNLog())
                     .Build();
 
+                HostManager.Host = host;
                 Console.WriteLine($"Server garbage collection : {(GCSettings.IsServerGC ? "Enabled" : "Disabled")}");
                 Console.WriteLine($"Current latency mode for garbage collection: {GCSettings.LatencyMode}");
 

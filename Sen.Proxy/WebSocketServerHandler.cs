@@ -35,7 +35,7 @@ namespace Sen.Proxy
 
     public class WebSocketServerHandler : SimpleChannelInboundHandler<object>
     {
-        static readonly ILogger<WebSocketServerHandler> logger = SenProxy.LoggerFactory.CreateLogger<WebSocketServerHandler>();
+        static readonly ILogger<WebSocketServerHandler> logger = Logger.LoggerFactory.CreateLogger<WebSocketServerHandler>();
         readonly IPlayerFactory _playerFactory;
         readonly UseExternalProxy _useExternalProxy;
         const string WebsocketPath = "/websocket";

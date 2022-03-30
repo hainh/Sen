@@ -20,6 +20,7 @@ namespace SenAnalyzer
         public const string HandleMessageSignatureReturnTypeDiagnosticId = $"Sen{HandleMessage}SignatureReturnType";
         public const string HandleMessageSignatureArg0DiagnosticId = $"Sen{HandleMessage}SignatureArg0";
         public const string HandleMessageSignatureArg1DiagnosticId = $"Sen{HandleMessage}SignatureArg1";
+        public const string HandleMessageSignatureArg2DiagnosticId = $"Sen{HandleMessage}SignatureArg2";
         public const string HandleMessageSignatureArgLengthDiagnosticId = $"Sen{HandleMessage}SignatureArgLength";
         public const string HandleMessageCreateMethodDiagnosticId = $"Sen{HandleMessage}CreateMethod";
         public const string SenPlayerClassName = "AbstractPlayer";
@@ -27,6 +28,12 @@ namespace SenAnalyzer
         public const string NetworkOptions = "NetworkOptions";
         public const string SenInterfaces = "Sen.Interfaces";
         public const string SenGrains = "Sen.Grains";
+
+        public static readonly string HandleMessageShort;
+        static HandleMessageMethodAnalyzer()
+        {
+            HandleMessageShort = string.Join("", HandleMessage.Where(c => c >= 'A' && c <= 'Z')).ToLower();
+        }
 
         // You can change these strings in the Resources.resx file. If you do not want your analyzer to be localize-able, you can use regular strings for Title and MessageFormat.
         // See https://github.com/dotnet/roslyn/blob/master/docs/analyzers/Localizing%20Analyzers.md for more on localization
@@ -87,12 +94,21 @@ namespace SenAnalyzer
             isEnabledByDefault: true,
             description: $"{HandleMessage} method argument type is invalid.");
 
+        private static readonly DiagnosticDescriptor HandleMessageSignatureArg2Rule = new(
+            HandleMessageSignatureArg2DiagnosticId,
+            $"{HandleMessage} method argument type is invalid",
+            $"{HandleMessage} method argument {{0}} must be an {{01}}",
+            CategoryNaming,
+            DiagnosticSeverity.Error,
+            isEnabledByDefault: true,
+            description: $"{HandleMessage} method argument type is invalid.");
+
         private static readonly DiagnosticDescriptor HandleMessageCreateMethodRule = new (
             HandleMessageCreateMethodDiagnosticId,
             $"Create mothod {HandleMessage} for a message type",
             $"Create method {HandleMessage}",
             CategoryNaming,
-            DiagnosticSeverity.Info,
+            DiagnosticSeverity.Warning,
             isEnabledByDefault: true,
             description: $"Create method {HandleMessage} here.");
 
@@ -106,6 +122,7 @@ namespace SenAnalyzer
                     HandleMessageSignatureReturnTypeRule,
                     HandleMessageSignatureArg0Rule,
                     HandleMessageSignatureArg1Rule,
+                    HandleMessageSignatureArg2Rule,
                     HandleMessageSignatureArgLengthRule,
                     HandleMessageCreateMethodRule); 
             }
@@ -114,47 +131,51 @@ namespace SenAnalyzer
         public override void Initialize(AnalysisContext context)
         {
             context.EnableConcurrentExecution();
+            //context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
             context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.Analyze | GeneratedCodeAnalysisFlags.ReportDiagnostics);
-            context.RegisterSymbolAction(AnalyzeHandleMessageMethodSymbol, SymbolKind.Method);
-            context.RegisterSymbolAction(AnalyzeHandleMessageMethodSignature, SymbolKind.Method);
+            context.RegisterSymbolAction(AnalyzeHandleMessageMethodSymbolSignature, SymbolKind.Method);
             context.RegisterSymbolAction(AnalyzeHandleMessageCreation, SymbolKind.Field);
+            //context.RegisterSemanticModelAction(AnalyzeMessageSemantic);
         }
+
+        //private void AnalyzeMessageSemantic(SemanticModelAnalysisContext semanticModelAnalysisContext)
+        //{
+        //    var res = semanticModelAnalysisContext.SemanticModel.SyntaxTree.GetRoot().DescendantNodes();
+        //}
 
         private void AnalyzeHandleMessageCreation(SymbolAnalysisContext context)
         {
             var symbol = context.Symbol;
-            if (symbol.Name.ToLower() == "hm")
+            if (symbol.Name.ToLower() == HandleMessageShort)
             {
                 var diagnostic = Diagnostic.Create(HandleMessageCreateMethodRule, symbol.Locations[0]);
                 context.ReportDiagnostic(diagnostic);
             }
         }
 
-        private static void AnalyzeHandleMessageMethodSymbol(SymbolAnalysisContext context)
-        {
-            var methodSymbol = (IMethodSymbol)context.Symbol;
-            if (methodSymbol.Name == HandleMessage)
-            {
-                return;
-            }
-            if (LevenshteinDistance.Compute(methodSymbol.Name, HandleMessage) <= 3)
-            {
-                var diagnostic = Diagnostic.Create(HandleMessageNameRule, methodSymbol.Locations[0], methodSymbol.Name);
-                context.ReportDiagnostic(diagnostic);
-            }
-        }
-
-        private static void AnalyzeHandleMessageMethodSignature(SymbolAnalysisContext context)
+        private static void AnalyzeHandleMessageMethodSymbolSignature(SymbolAnalysisContext context)
         {
             IMethodSymbol methodSymbol = (IMethodSymbol)context.Symbol;
             if (methodSymbol.Name != HandleMessage)
             {
                 return;
             }
+
+            if (methodSymbol.Name.ToLower() == HandleMessageShort || LevenshteinDistance.Compute(methodSymbol.Name, HandleMessage) <= 3)
+            {
+                var diagnostic = Diagnostic.Create(HandleMessageNameRule, methodSymbol.Locations[0], methodSymbol.Name);
+                context.ReportDiagnostic(diagnostic);
+            }
+            if (methodSymbol.Name.ToLower() == HandleMessageShort)
+            {
+                var diagnostic = Diagnostic.Create(HandleMessageCreateMethodRule, methodSymbol.Locations[0]);
+                context.ReportDiagnostic(diagnostic);
+            }
+
             INamedTypeSymbol containingClass = methodSymbol.ContainingType;
             
             ITypeSymbol tUnionDataType = GetUnionTypeOfPlayer(containingClass.BaseType);
-            if (tUnionDataType != null)
+            while (tUnionDataType != null)
             {
                 if (methodSymbol.ReturnsVoid || !ReturnTypeIsUnionData(methodSymbol.ReturnType, tUnionDataType))
                 {
@@ -171,6 +192,13 @@ namespace SenAnalyzer
                     context.ReportDiagnostic(diagnostic);
                 }
 
+                if (methodSymbol.Parameters.Length != 2)
+                {
+                    var diagnostic = Diagnostic.Create(HandleMessageSignatureArgLengthRule, ParameterTypeLocation(methodSymbol, -1), 2, 's');
+                    context.ReportDiagnostic(diagnostic);
+                }
+
+                if (methodSymbol.Parameters.Length < 1) break;
                 ITypeSymbol param0 = methodSymbol.Parameters[0].Type;
                 bool paramTypeMatch = param0.BaseType != null && HasInterface(param0, tUnionDataType);
                 if (!paramTypeMatch)
@@ -180,6 +208,7 @@ namespace SenAnalyzer
                     context.ReportDiagnostic(diagnostic);
                 }
 
+                if (methodSymbol.Parameters.Length < 2) break;
                 ITypeSymbol param1 = methodSymbol.Parameters[1].Type;
                 paramTypeMatch = param1.Name == NetworkOptions && param1.ContainingAssembly.Name == SenInterfaces;
                 if (!paramTypeMatch)
@@ -188,16 +217,11 @@ namespace SenAnalyzer
                         methodSymbol.Parameters[1].Name, NetworkOptions);
                     context.ReportDiagnostic(diagnostic);
                 }
-
-                if (methodSymbol.Parameters.Length != 2)
-                {
-                    var diagnostic = Diagnostic.Create(HandleMessageSignatureArgLengthRule, ParameterTypeLocation(methodSymbol, -1), 2, 's');
-                    context.ReportDiagnostic(diagnostic);
-                }
+                break;
             }
 
             var unionType = GetUnionDataTypeInRoomType(containingClass.BaseType);
-            if (unionType != null)
+            while (unionType != null)
             {
                 if (methodSymbol.ReturnsVoid || !ReturnTypeIsUnionData(methodSymbol.ReturnType, unionType))
                 {
@@ -220,6 +244,8 @@ namespace SenAnalyzer
                         ParameterTypeLocation(methodSymbol, -1), 3, 's');
                     context.ReportDiagnostic(diagnostic);
                 }
+
+                if (methodSymbol.Parameters.Length < 1) break;
                 ITypeSymbol param0 = methodSymbol.Parameters[0].Type;
                 bool param0TypeMatch = param0.BaseType != null && HasInterface(param0, unionType);
                 if (!param0TypeMatch)
@@ -229,6 +255,7 @@ namespace SenAnalyzer
                     context.ReportDiagnostic(diagnostic);
                 }
 
+                if (methodSymbol.Parameters.Length < 2) break;
                 ITypeSymbol param1 = methodSymbol.Parameters[1].Type;
                 bool param1TypeMatch = IsOfIPlayer(param1);
                 if (!param1TypeMatch)
@@ -238,14 +265,16 @@ namespace SenAnalyzer
                     context.ReportDiagnostic(diagnostic);
                 }
 
+                if (methodSymbol.Parameters.Length < 3) break;
                 ITypeSymbol param2 = methodSymbol.Parameters[2].Type;
                 bool param2TypeMatch = param2.Name == NetworkOptions && param2.ContainingAssembly.Name == SenInterfaces;
                 if (!param2TypeMatch)
                 {
-                    var diagnostic = Diagnostic.Create(HandleMessageSignatureArg1Rule, ParameterTypeLocation(methodSymbol, 0),
-                        methodSymbol.Parameters[2].Name, NetworkOptions);
+                    var diagnostic = Diagnostic.Create(HandleMessageSignatureArg1Rule, 
+                        ParameterTypeLocation(methodSymbol, 2), methodSymbol.Parameters[2].Name, NetworkOptions);
                     context.ReportDiagnostic(diagnostic);
                 }
+                break;
             }
         }
 

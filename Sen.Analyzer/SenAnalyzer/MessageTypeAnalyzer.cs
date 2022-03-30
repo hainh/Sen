@@ -7,6 +7,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
+using Microsoft.CodeAnalysis.FindSymbols;
 
 namespace SenAnalyzer
 {
@@ -17,6 +18,7 @@ namespace SenAnalyzer
         public const string MessageTypeHasAttributeDiagnosticId = "MessageTypeMustHasMessagePackObjectAttribute";
         public const string MessageTypeMustBeDeclaredInUnionDiagnosticId = "MessageTypeMustBeDeclaredInUnion";
         public const string MessageTypeLackAHandleMessageMethodDiagnosticId = "MessageTypeLackAHandleMessageMethod";
+        public const string TooMuchHandleMessageMethodForMessageTypeDiagnosticId = "TooMuchHandleMessageMethodForMessageType";
 
         private const string CategoryMessageType = "Message";
 
@@ -56,17 +58,28 @@ namespace SenAnalyzer
             isEnabledByDefault: true,
             description: $"Message type should have a {HandleMessageMethodAnalyzer.HandleMessage} method.");
 
+        private static readonly DiagnosticDescriptor TooMuchHandleMessageMethodForMessageTypeRule = new(
+            TooMuchHandleMessageMethodForMessageTypeDiagnosticId,
+            $"There are {{0}} {HandleMessageMethodAnalyzer.HandleMessage} methods for {{1}} message",
+            @$"There are {{0}} {HandleMessageMethodAnalyzer.HandleMessage} methods for {{1}} message",
+            CategoryMessageType,
+            DiagnosticSeverity.Error,
+            isEnabledByDefault: true,
+            description: $"Message type should have only one {HandleMessageMethodAnalyzer.HandleMessage} method.");
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get { return ImmutableArray.Create(
                     MessageTypeImplementInterfaceDerectlyRule,
                     MessageTypeMustHaveAttributeRule,
                     MessageTypeMustBeDeclaredInUnionTypeRule,
-                    MessageTypeLackAHandleMessageMethodRule); } }
+                    MessageTypeLackAHandleMessageMethodRule,
+                    TooMuchHandleMessageMethodForMessageTypeRule); } }
 
         public override void Initialize(AnalysisContext context)
         {
             context.EnableConcurrentExecution();
             context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.Analyze | GeneratedCodeAnalysisFlags.ReportDiagnostics);
             context.RegisterSymbolAction(AnalyzeMessageType, SymbolKind.NamedType);
+            //context.RegisterSemanticModelAction(AnalyzeHandlerOfMessageType);
         }
 
         private static void AnalyzeMessageType(SymbolAnalysisContext context)
@@ -108,10 +121,6 @@ namespace SenAnalyzer
                             var diagnostic = Diagnostic.Create(MessageTypeMustBeDeclaredInUnionTypeRule, typeSymbol.Locations[0], properties, typeSymbol.Name, unionType.Name);
                             context.ReportDiagnostic(diagnostic);
                         }
-                        else
-                        {
-                            AnalyzeHandlerOfMessageType(context, typeSymbol);
-                        }
                     }
                 }
                 else if (typeSymbol.Interfaces.Any(IsImplemetationOfIUnionData))
@@ -120,10 +129,6 @@ namespace SenAnalyzer
                     {
                         var diagnostic = Diagnostic.Create(MessageTypeMustHaveAttributeRule, typeSymbol.Locations[0], typeSymbol.Name);
                         context.ReportDiagnostic(diagnostic);
-                    }
-                    else
-                    {
-                        AnalyzeHandlerOfMessageType(context, typeSymbol);
                     }
                 }
             }
@@ -157,11 +162,8 @@ namespace SenAnalyzer
             return IsName(typeSymbol, "IUnionData", "Sen.Interfaces");
         }
 
-        static void AnalyzeHandlerOfMessageType(SymbolAnalysisContext context, INamedTypeSymbol typeSymbol)
+        private void AnalyzeHandlerOfMessageType(SemanticModelAnalysisContext obj)
         {
-            //var properties = new Dictionary<string, string>();
-            //var diagnostic = Diagnostic.Create(MessageTypeLackAHandleMessageMethodRule, typeSymbol.Locations[0], properties, typeSymbol.Name);
-            //context.ReportDiagnostic(diagnostic);
         }
     }
 }

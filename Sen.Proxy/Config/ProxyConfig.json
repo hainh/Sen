@@ -8,5 +8,6 @@
 		{
 			"Port": 6666
 		}
-	]
+	],
+	"MongoDbConnectionString": "mongodb://localhost:27017/?readPreference=primary&appname=EoG&ssl=false"
 }

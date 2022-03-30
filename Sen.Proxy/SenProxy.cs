@@ -24,20 +24,11 @@ namespace Sen.Proxy
         public ProxyConfig ProxyConfig { get; }
         readonly Dictionary<string, X509Certificate2> Certificates = new Dictionary<string, X509Certificate2>();
 
-        readonly ILogger<SenProxy> logger = LoggerFactory.CreateLogger<SenProxy>();
+        readonly ILogger<SenProxy> logger = Logger.LoggerFactory.CreateLogger<SenProxy>();
 
         private IEventLoopGroup bossGroup;
         private IEventLoopGroup workGroup;
         private List<IChannel> channels;
-
-        public static ILoggerFactory LoggerFactory { get; }
-
-        static SenProxy()
-        {
-            LoggerFactory = new NLogLoggerFactory();
-            Utilities.InternalLogger.LoggerFactory = LoggerFactory;
-            DotNetty.Common.Internal.Logging.InternalLoggerFactory.DefaultFactory = LoggerFactory;
-        }
 
         public IServiceProvider Services => null;
 
