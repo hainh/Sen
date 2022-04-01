@@ -30,10 +30,8 @@ namespace SenAnalyzer
             return WellKnownFixAllProviders.BatchFixer;
         }
 
-        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
+        public sealed override Task RegisterCodeFixesAsync(CodeFixContext context)
         {
-            var root = await context.Document.GetSyntaxRootAsync(context.CancellationToken).ConfigureAwait(false);
-
             var unionAttrDiagnostic = context.Diagnostics.FirstOrDefault(d => d.Id == MessageTypeAnalyzer.MessageTypeMustBeDeclaredInUnionDiagnosticId);
             if (unionAttrDiagnostic != null)
             {
@@ -47,6 +45,7 @@ namespace SenAnalyzer
                         equivalenceKey: title),
                     unionAttrDiagnostic);
             }
+            return Task.CompletedTask;
         }
 
         private async Task<Solution> AddAttribute(Document document, ImmutableDictionary<string, string> properties, CancellationToken cancellation)

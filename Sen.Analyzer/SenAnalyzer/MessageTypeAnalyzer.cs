@@ -14,11 +14,11 @@ namespace SenAnalyzer
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
     public class MessageTypeAnalyzer : DiagnosticAnalyzer
     {
-        public const string MessageTypeImplementDiagnosticId = "MessageTypeMustNotImplementIUnionDataDirectly";
-        public const string MessageTypeHasAttributeDiagnosticId = "MessageTypeMustHasMessagePackObjectAttribute";
-        public const string MessageTypeMustBeDeclaredInUnionDiagnosticId = "MessageTypeMustBeDeclaredInUnion";
-        public const string MessageTypeLackAHandleMessageMethodDiagnosticId = "MessageTypeLackAHandleMessageMethod";
-        public const string TooMuchHandleMessageMethodForMessageTypeDiagnosticId = "TooMuchHandleMessageMethodForMessageType";
+        public const string MessageTypeImplementDiagnosticId = "Sen20";
+        public const string MessageTypeHasAttributeDiagnosticId = "Sen21";
+        public const string MessageTypeMustBeDeclaredInUnionDiagnosticId = "Sen22";
+        public const string MessageTypeLackAHandleMessageMethodDiagnosticId = "Sen23";
+        public const string TooMuchHandleMessageMethodForMessageTypeDiagnosticId = "Sen24";
 
         private const string CategoryMessageType = "Message";
 
@@ -159,7 +159,7 @@ namespace SenAnalyzer
 
         static bool IsIUnionDataInterface(INamedTypeSymbol typeSymbol)
         {
-            return IsName(typeSymbol, "IUnionData", "Sen.Interfaces");
+            return IsName(typeSymbol, "IUnionData", Constants.SenInterfaces);
         }
 
         private void AnalyzeHandlerOfMessageType(SemanticModelAnalysisContext obj)

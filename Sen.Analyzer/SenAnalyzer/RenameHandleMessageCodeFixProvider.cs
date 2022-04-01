@@ -37,12 +37,12 @@ namespace SenAnalyzer
 
         public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
-            var root = await context.Document.GetSyntaxRootAsync(context.CancellationToken).ConfigureAwait(false);
 
             var renameDiagnostic = context.Diagnostics.FirstOrDefault(d => d.Id == HandleMessageMethodAnalyzer.RenameToHandleMessageDiagnosticId);
             if (renameDiagnostic != null)
             {
                 var diagnosticSpan = renameDiagnostic.Location.SourceSpan;
+                var root = await context.Document.GetSyntaxRootAsync(context.CancellationToken).ConfigureAwait(false);
 
                 // Find the type declaration identified by the diagnostic.
                 SyntaxNode declaration = root.FindToken(diagnosticSpan.Start).Parent;

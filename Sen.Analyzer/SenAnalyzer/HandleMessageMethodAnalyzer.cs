@@ -15,19 +15,14 @@ namespace SenAnalyzer
     public class HandleMessageMethodAnalyzer : DiagnosticAnalyzer
     {
         public const string HandleMessage = "HandleMessage";
-        public const string RenameToHandleMessageDiagnosticId = $"Sen{HandleMessage}Rename";
-        public const string HandleMessageMustBePublicDiagnosticId = $"Sen{HandleMessage}MustBePublic";
-        public const string HandleMessageSignatureReturnTypeDiagnosticId = $"Sen{HandleMessage}SignatureReturnType";
-        public const string HandleMessageSignatureArg0DiagnosticId = $"Sen{HandleMessage}SignatureArg0";
-        public const string HandleMessageSignatureArg1DiagnosticId = $"Sen{HandleMessage}SignatureArg1";
-        public const string HandleMessageSignatureArg2DiagnosticId = $"Sen{HandleMessage}SignatureArg2";
-        public const string HandleMessageSignatureArgLengthDiagnosticId = $"Sen{HandleMessage}SignatureArgLength";
-        public const string HandleMessageCreateMethodDiagnosticId = $"Sen{HandleMessage}CreateMethod";
-        public const string SenPlayerClassName = "AbstractPlayer";
-        public const string SenRoomClassName = "AbstractRoom";
-        public const string NetworkOptions = "NetworkOptions";
-        public const string SenInterfaces = "Sen.Interfaces";
-        public const string SenGrains = "Sen.Grains";
+        public const string RenameToHandleMessageDiagnosticId = $"Sen01";
+        public const string HandleMessageMustBePublicDiagnosticId = $"Sen02";
+        public const string HandleMessageSignatureReturnTypeDiagnosticId = $"Sen03";
+        public const string HandleMessageSignatureArg0DiagnosticId = $"Sen04";
+        public const string HandleMessageSignatureArg1DiagnosticId = $"Sen05";
+        public const string HandleMessageSignatureArg2DiagnosticId = $"Sen06";
+        public const string HandleMessageSignatureArgLengthDiagnosticId = $"Sen07";
+        public const string HandleMessageCreateMethodDiagnosticId = $"Sen08";
 
         public static readonly string HandleMessageShort;
         static HandleMessageMethodAnalyzer()
@@ -148,7 +143,7 @@ namespace SenAnalyzer
             var symbol = context.Symbol;
             if (symbol.Name.ToLower() == HandleMessageShort)
             {
-                var diagnostic = Diagnostic.Create(HandleMessageCreateMethodRule, symbol.Locations[0]);
+                var diagnostic = Diagnostic.Create(HandleMessageCreateMethodRule, symbol.Locations[0], symbol.Locations);
                 context.ReportDiagnostic(diagnostic);
             }
         }
@@ -156,24 +151,29 @@ namespace SenAnalyzer
         private static void AnalyzeHandleMessageMethodSymbolSignature(SymbolAnalysisContext context)
         {
             IMethodSymbol methodSymbol = (IMethodSymbol)context.Symbol;
+            INamedTypeSymbol containingClass = methodSymbol.ContainingType;
+
+            if (!IsAbstractPlayer(containingClass) && !IsAbstractRoom(containingClass))
+            {
+                return;
+            }
+            if (methodSymbol.Name.ToLower() == HandleMessageShort)
+            {
+                var diagnostic = Diagnostic.Create(HandleMessageCreateMethodRule, methodSymbol.Locations[0], methodSymbol.Locations);
+                context.ReportDiagnostic(diagnostic);
+            }
+
+            if (methodSymbol.Name != HandleMessage && LevenshteinDistance.Compute(methodSymbol.Name, HandleMessage) <= 3)
+            {
+                var diagnostic = Diagnostic.Create(HandleMessageNameRule, methodSymbol.Locations[0], methodSymbol.Name);
+                context.ReportDiagnostic(diagnostic);
+            }
+
             if (methodSymbol.Name != HandleMessage)
             {
                 return;
             }
 
-            if (methodSymbol.Name.ToLower() == HandleMessageShort || LevenshteinDistance.Compute(methodSymbol.Name, HandleMessage) <= 3)
-            {
-                var diagnostic = Diagnostic.Create(HandleMessageNameRule, methodSymbol.Locations[0], methodSymbol.Name);
-                context.ReportDiagnostic(diagnostic);
-            }
-            if (methodSymbol.Name.ToLower() == HandleMessageShort)
-            {
-                var diagnostic = Diagnostic.Create(HandleMessageCreateMethodRule, methodSymbol.Locations[0]);
-                context.ReportDiagnostic(diagnostic);
-            }
-
-            INamedTypeSymbol containingClass = methodSymbol.ContainingType;
-            
             ITypeSymbol tUnionDataType = GetUnionTypeOfPlayer(containingClass.BaseType);
             while (tUnionDataType != null)
             {
@@ -188,13 +188,13 @@ namespace SenAnalyzer
 
                 if (methodSymbol.IsStatic || methodSymbol.DeclaredAccessibility != Accessibility.Public)
                 {
-                    var diagnostic = Diagnostic.Create(HandleMessageMustBePublicRule, ModifiersLocation(methodSymbol));
+                    var diagnostic = Diagnostic.Create(HandleMessageMustBePublicRule, ModifiersLocation(methodSymbol), methodSymbol.Locations);
                     context.ReportDiagnostic(diagnostic);
                 }
 
                 if (methodSymbol.Parameters.Length != 2)
                 {
-                    var diagnostic = Diagnostic.Create(HandleMessageSignatureArgLengthRule, ParameterTypeLocation(methodSymbol, -1), 2, 's');
+                    var diagnostic = Diagnostic.Create(HandleMessageSignatureArgLengthRule, ParameterTypeLocation(methodSymbol, -1), methodSymbol.Locations, 2, 's');
                     context.ReportDiagnostic(diagnostic);
                 }
 
@@ -203,24 +203,24 @@ namespace SenAnalyzer
                 bool paramTypeMatch = param0.BaseType != null && HasInterface(param0, tUnionDataType);
                 if (!paramTypeMatch)
                 {
-                    var diagnostic = Diagnostic.Create(HandleMessageSignatureArg0Rule, ParameterTypeLocation(methodSymbol, 0),
+                    var diagnostic = Diagnostic.Create(HandleMessageSignatureArg0Rule, ParameterTypeLocation(methodSymbol, 0), methodSymbol.Locations,
                         methodSymbol.Parameters[0].Name, tUnionDataType.Name);
                     context.ReportDiagnostic(diagnostic);
                 }
 
                 if (methodSymbol.Parameters.Length < 2) break;
                 ITypeSymbol param1 = methodSymbol.Parameters[1].Type;
-                paramTypeMatch = param1.Name == NetworkOptions && param1.ContainingAssembly.Name == SenInterfaces;
+                paramTypeMatch = param1.Name == Constants.NetworkOptions && param1.ContainingAssembly.Name == Constants.SenInterfaces;
                 if (!paramTypeMatch)
                 {
-                    var diagnostic = Diagnostic.Create(HandleMessageSignatureArg1Rule, ParameterTypeLocation(methodSymbol, 0),
-                        methodSymbol.Parameters[1].Name, NetworkOptions);
+                    var diagnostic = Diagnostic.Create(HandleMessageSignatureArg1Rule, ParameterTypeLocation(methodSymbol, 0), methodSymbol.Locations,
+                        methodSymbol.Parameters[1].Name, Constants.NetworkOptions);
                     context.ReportDiagnostic(diagnostic);
                 }
                 break;
             }
 
-            var unionType = GetUnionDataTypeInRoomType(containingClass.BaseType);
+            var unionType = GetUnionDataTypeInRoomType(containingClass);
             while (unionType != null)
             {
                 if (methodSymbol.ReturnsVoid || !ReturnTypeIsUnionData(methodSymbol.ReturnType, unionType))
@@ -234,7 +234,7 @@ namespace SenAnalyzer
 
                 if (methodSymbol.IsStatic || methodSymbol.DeclaredAccessibility != Accessibility.Public)
                 {
-                    var diagnostic = Diagnostic.Create(HandleMessageMustBePublicRule, ModifiersLocation(methodSymbol));
+                    var diagnostic = Diagnostic.Create(HandleMessageMustBePublicRule, ModifiersLocation(methodSymbol), methodSymbol.Locations);
                     context.ReportDiagnostic(diagnostic);
                 }
 
@@ -251,27 +251,27 @@ namespace SenAnalyzer
                 if (!param0TypeMatch)
                 {
                     var diagnostic = Diagnostic.Create(HandleMessageSignatureArg0Rule,
-                        ParameterTypeLocation(methodSymbol, 0), methodSymbol.Parameters[0].Name, unionType.Name);
+                        ParameterTypeLocation(methodSymbol, 0), methodSymbol.Locations, methodSymbol.Parameters[0].Name, unionType.Name);
                     context.ReportDiagnostic(diagnostic);
                 }
 
                 if (methodSymbol.Parameters.Length < 2) break;
                 ITypeSymbol param1 = methodSymbol.Parameters[1].Type;
-                bool param1TypeMatch = IsOfIPlayer(param1);
+                bool param1TypeMatch = IsIPlayer(param1);
                 if (!param1TypeMatch)
                 {
                     var diagnostic = Diagnostic.Create(HandleMessageSignatureArg1Rule,
-                        ParameterTypeLocation(methodSymbol, 1), methodSymbol.Parameters[1].Name, "IPlayer");
+                        ParameterTypeLocation(methodSymbol, 1), methodSymbol.Locations, methodSymbol.Parameters[1].Name, Constants.IPlayer);
                     context.ReportDiagnostic(diagnostic);
                 }
 
                 if (methodSymbol.Parameters.Length < 3) break;
                 ITypeSymbol param2 = methodSymbol.Parameters[2].Type;
-                bool param2TypeMatch = param2.Name == NetworkOptions && param2.ContainingAssembly.Name == SenInterfaces;
+                bool param2TypeMatch = param2.Name == Constants.NetworkOptions && param2.ContainingAssembly.Name == Constants.SenInterfaces;
                 if (!param2TypeMatch)
                 {
                     var diagnostic = Diagnostic.Create(HandleMessageSignatureArg1Rule, 
-                        ParameterTypeLocation(methodSymbol, 2), methodSymbol.Parameters[2].Name, NetworkOptions);
+                        ParameterTypeLocation(methodSymbol, 2), methodSymbol.Locations, methodSymbol.Parameters[2].Name, Constants.NetworkOptions);
                     context.ReportDiagnostic(diagnostic);
                 }
                 break;
@@ -309,33 +309,49 @@ namespace SenAnalyzer
             return Location.Create(methodSymbol.Locations[0].SourceTree, methodNode.Modifiers.Span);
         }
 
-        static bool IsOfIPlayer(ITypeSymbol param1)
+        public static bool IsIPlayer(ITypeSymbol symbol)
         {
-            if (param1.Name == "IPlayer" && param1.ContainingAssembly.Name == SenInterfaces)
-            {
-                return true;
-            }
-            if (param1.AllInterfaces.Any(i => i.Name == "IPlayer" && i.ContainingAssembly.Name == SenInterfaces))
+            if (symbol.Name == Constants.IPlayer && symbol.ContainingAssembly.Name == Constants.SenInterfaces)
             {
                 return true;
             }
             return false;
         }
 
-        static ITypeSymbol GetUnionTypeOfPlayer(INamedTypeSymbol classType)
+        public static bool IsAbstractPlayer(ITypeSymbol symbol)
+        {
+            if (symbol == null) return false;
+            if (symbol.Name == Constants.SenPlayerClassName && symbol.ContainingAssembly.Name == Constants.SenGrains)
+            {
+                return true;
+            }
+            return IsAbstractPlayer(symbol.BaseType);
+        }
+
+        public static bool IsAbstractRoom(ITypeSymbol symbol)
+        {
+            if (symbol == null) return false;
+            if (symbol.Name == Constants.SenRoomClassName && symbol.ContainingAssembly.Name == Constants.SenGrains)
+            {
+                return true;
+            }
+            return IsAbstractRoom(symbol.BaseType);
+        }
+
+        public static ITypeSymbol GetUnionTypeOfPlayer(INamedTypeSymbol classType)
         {
             if (classType == null)
             {
                 return null;
             }
-            if (classType.IsGenericType && classType.Name == SenPlayerClassName && classType.ContainingAssembly.Name == SenGrains)
+            if (classType.IsGenericType && classType.Name == Constants.SenPlayerClassName && classType.ContainingAssembly.Name == Constants.SenGrains)
             {
                 return classType.TypeArguments[0];
             }
             return GetUnionTypeOfPlayer(classType.BaseType);
         }
 
-        static bool HasInterface(ITypeSymbol type, ITypeSymbol @interface)
+        public static bool HasInterface(ITypeSymbol type, ITypeSymbol @interface)
         {
             var cmp = SymbolEqualityComparer.Default;
             if (type.Name == @interface.Name && cmp.Equals(type.ContainingAssembly, @interface.ContainingAssembly))
@@ -349,7 +365,7 @@ namespace SenAnalyzer
             return false;
         }
 
-        static bool ReturnTypeIsUnionData(ITypeSymbol typeSymbol, ITypeSymbol tUnionDataType)
+        public static bool ReturnTypeIsUnionData(ITypeSymbol typeSymbol, ITypeSymbol tUnionDataType)
         {
             return typeSymbol.IsValueType
                    && typeSymbol is INamedTypeSymbol valueTask
@@ -358,22 +374,32 @@ namespace SenAnalyzer
                    && HasInterface(valueTask.TypeArguments[0], tUnionDataType);
         }
 
-        static ITypeSymbol GetUnionDataTypeInRoomType(ITypeSymbol typeSymbol)
+        public static ITypeSymbol GetUnionDataTypeInRoomType(ITypeSymbol typeSymbol)
         {
             if (typeSymbol == null)
             {
                 return null;
             }
-            if (typeSymbol.Name == SenRoomClassName && typeSymbol.ContainingAssembly.Name == SenGrains)
+            var nss = typeSymbol.ContainingAssembly.GlobalNamespace.GetNamespaceMembers();
+            var mems = nss.Select(ns => ns.GetTypeMembers());
+            var memsA = mems.Aggregate((f1, f2) => ImmutableArray.Create(f1.Concat(f2).ToArray()));
+            var type = memsA.FirstOrDefault(namedType => namedType.TypeKind == TypeKind.Class && IsAbstractPlayer(namedType));
+            if (type != null)
             {
-                if (typeSymbol.GetMembers().FirstOrDefault(t => t.Name == HandleMessage) is IMethodSymbol method
-                    && method.ReturnType is INamedTypeSymbol valueTask)
-                {
-                    return valueTask.TypeArguments[0];
-                }
-                return null;
+                return GetUnionTypeOfPlayer(type);
             }
-            return GetUnionDataTypeInRoomType(typeSymbol.BaseType);
+            return null;
+
+            //if (typeSymbol.Name == SenRoomClassName && typeSymbol.ContainingAssembly.Name == SenGrains)
+            //{
+            //    if (typeSymbol.GetMembers().FirstOrDefault(t => t.Name == HandleMessage) is IMethodSymbol method
+            //        && method.ReturnType is INamedTypeSymbol valueTask)
+            //    {
+            //        return valueTask.TypeArguments[0];
+            //    }
+            //    return null;
+            //}
+            //return GetUnionDataTypeInRoomType(typeSymbol.BaseType);
         }
     }
 }
