@@ -82,6 +82,7 @@ namespace SenAnalyzer
                         resetDiagnostic);
                     return;
                 }
+                messageTypes.Sort((a, b) => a.Name.CompareTo(b.Name));
                 string methodStr;
                 if (HandleMessageMethodAnalyzer.IsAbstractPlayer(containingClass))
                 {
@@ -106,11 +107,11 @@ namespace SenAnalyzer
                 string paramName = (msgType as ITypeSymbol).TypeKind == TypeKind.Interface
                     ? "message"
                     : msgType.Name.Replace(msgType.Name[0], char.ToLower(msgType.Name[0]));
-                method = method.Replace("{message}", $"{msgType.Name} {paramName}");
+                string newMethod = method.Replace("{message}", $"{msgType.Name} {paramName}");
                 string title = $"With parameters ({msgType.Name} {paramName}, ...)" + (isCreating ? "" : " and return type ValueTask<>");
                 return CodeAction.Create(
                     title: title,
-                    createChangedSolution: c => ResetHandleMessageMethodAsync(context, location, method, c),
+                    createChangedSolution: c => ResetHandleMessageMethodAsync(context, location, newMethod, c),
                     equivalenceKey: "For " + msgType.Name);
             }).ToArray());
         }
