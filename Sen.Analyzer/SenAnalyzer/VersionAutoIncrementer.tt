@@ -1,0 +1,24 @@
+﻿<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ output extension=".cs" #>
+
+using System.Reflection;
+
+[assembly: AssemblyVersion("<#= this.Version  #>")]
+[assembly: AssemblyCompany("SenAnalyzer")]
+[assembly: AssemblyConfiguration("Debug")]
+[assembly: AssemblyFileVersion("<#= this.Version  #>")]
+[assembly: AssemblyInformationalVersion("<#= this.Version  #>")]
+[assembly: AssemblyProduct("SenAnalyzer")]
+[assembly: AssemblyTitle("SenAnalyzer")]
+
+<#+
+
+ static int Major = 1;
+ static int Minor = 0;
+ 
+ static DateTime ProjectStartedDate = new DateTime(year: 2020, month: 3, day: 12);
+ static int DaysSinceProjectStarted = (int)((DateTime.UtcNow - ProjectStartedDate).TotalDays);
+
+ static int MinutesSinceMidnight = (int)(DateTime.UtcNow.TimeOfDay.TotalMinutes * 10);
+ string Version = $"{Major}.{Minor}.{DaysSinceProjectStarted}.{MinutesSinceMidnight}";
+#>
