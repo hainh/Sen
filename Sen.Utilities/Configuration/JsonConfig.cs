@@ -45,7 +45,7 @@ namespace Sen.Utilities.Configuration
                 OnAnyConfigLoaded?.Invoke(this, args);
             }
             Loaded?.Invoke(this, args);
-            logger.LogInformation(
+            logger?.LogInformation(
                 "Loaded {0}, {1}", 
                 GetType().FullName, 
                 JsonSerializer.Serialize(this, new JsonSerializerOptions() { WriteIndented = true }));

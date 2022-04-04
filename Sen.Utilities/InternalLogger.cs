@@ -8,12 +8,12 @@ namespace Sen.Utilities
 
         public static ILogger GetLogger<T>()
         {
-            return LoggerFactory.CreateLogger<T>();
+            return LoggerFactory?.CreateLogger<T>();
         }
 
         public static ILogger GetLogger(string name)
         {
-            return LoggerFactory.CreateLogger(name);
+            return LoggerFactory?.CreateLogger(name);
         }
     }
 }
