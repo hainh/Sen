@@ -26,7 +26,7 @@ namespace Sen
     {
         private IClientObserver _clientObserver;
 
-        public string LocalAddress { get; private set; }
+        public int LocalPort { get; private set; }
         public string RemoteAddress { get; private set; }
         public ValueTask<IRoom> GetRoom() => new(profile.State.Room);
 
@@ -85,34 +85,15 @@ namespace Sen
         }
 
         /// <inheritdoc />
-        public virtual async ValueTask<bool> InitConnection(string local, string remote, string username, string accessToken, IClientObserver observer)
+        public virtual async ValueTask InitConnection(int localPort, string remote, IClientObserver observer)
         {
-            if (LocalAddress != null)
-            {
-                return true;
-            }
-
-            if (profile.State.Name == null)
-            {
-                profile.State.Name = username;
-            }
-            else if (profile.State.Name != username)
-            {
-                return false;
-            }
-            LocalAddress = local;
+            LocalPort = localPort;
             RemoteAddress = remote;
-
-            if (!await CheckAccessToken(accessToken))
-            {
-                return false;
-            }
 
             _clientObserver = observer;
             ILobby gameWorld = GetGameWorld();
             await gameWorld.JoinRoom(Me, Name);
             await JoinRoom(gameWorld);
-            return true;
         }
 
         /// <summary>
@@ -157,8 +138,7 @@ namespace Sen
         public ValueTask SendData(Immutable<IUnionData> message, NetworkOptions networkOptions)
         {
             byte[] rawData = SerializeData((TUnionData)message.Value, networkOptions);
-            SendData(rawData.AsImmutable());
-            return ValueTask.CompletedTask;
+            return SendData(rawData.AsImmutable());
         }
 
         public ValueTask SendData(Immutable<byte[]> raw)

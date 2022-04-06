@@ -81,7 +81,6 @@ public class DefaultObjectPool<T> : ObjectPool<T> where T : class
     [MethodImpl(MethodImplOptions.NoInlining)]
     private T Create() => _fastPolicy?.Create() ?? _policy.Create();
 
-    [MethodImpl(MethodImplOptions.NoInlining)]
     private void OnCreateFromPool(T obj) => _fastPolicy?.OnCreateFromPool(obj);
 
     /// <inheritdoc />

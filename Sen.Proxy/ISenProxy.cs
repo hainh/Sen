@@ -1,18 +1,22 @@
-﻿using Orleans.Concurrency;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 
 namespace Sen.Proxy
 {
     public interface ISenProxy
     {
-        void SetGrainFactory(IPlayerFactory grainFactory);
+        void SetGrainFactory(IProxyServiceProvider grainFactory);
         Task StartAsync();
         Task StopAsync();
     }
 
-    public interface IPlayerFactory
+    public interface IProxyServiceProvider
     {
-        IPlayer CreatePlayer(string playerId);
+        IPlayer GetPlayer(string playerId);
+
+        IServerToServerGrain CreateServerToServerPeer(string leafServerId);
+
+        IAuthService GetAuthServiceGrain();
+
         Task<IClientObserver> CreateObserver<T>(T player) where T : class, IClientObserver;
     }
 }
