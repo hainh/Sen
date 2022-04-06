@@ -34,11 +34,16 @@ namespace Sen.Proxy
                 var result = Unpooled.WrappedBuffer(payloadSize, data.Value);
                 context.WriteAndFlushAsync(result);
             }
-            catch (Exception ex)
+            catch (Exception e)
             {
-
+                if (logger.IsEnabled(LogLevel.Debug))
+                {
+                    logger.LogDebug(e, e.Message);
+                }
             }
         }
+
+        static readonly ILogger<TcpSocketServerHandler> logger = Logger.LoggerFactory.CreateLogger<TcpSocketServerHandler>();
     }
 
     public class TcpSocketServerHandler : ChannelHandlerAdapter

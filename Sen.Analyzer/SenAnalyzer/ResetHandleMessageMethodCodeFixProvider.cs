@@ -54,14 +54,14 @@ namespace SenAnalyzer
                 INamedTypeSymbol containingClass = symbol.ContainingType;
                 ITypeSymbol tUnionDataType = HandleMessageMethodAnalyzer.GetUnionTypeOfPlayer(containingClass);
                 ITypeSymbol unionType = tUnionDataType ?? HandleMessageMethodAnalyzer.GetUnionDataTypeInRoomType(containingClass);
+                if (unionType == null) return;
                 List<ISymbol> messageTypes;
                 if (symbol is IFieldSymbol)
                 {
                     messageTypes = await GetAllUnhandledMessageTypes(doc.Project.Solution, unionType);
                 }
-                else
+                else if (symbol is IMethodSymbol methodSymbol)
                 {
-                    var methodSymbol = symbol as IMethodSymbol;
                     messageTypes = methodSymbol.Parameters.Select(para =>
                     {
                         if (para.Type.BaseType != null && HandleMessageMethodAnalyzer.HasInterface(para.Type, unionType))
@@ -74,6 +74,10 @@ namespace SenAnalyzer
                     {
                         messageTypes = await GetAllUnhandledMessageTypes(doc.Project.Solution, unionType);
                     }
+                }
+                else
+                {
+                    return;
                 }
                 if (messageTypes.Count == 0)
                 {
@@ -127,6 +131,7 @@ namespace SenAnalyzer
             Dictionary<DocumentId, Root> roots = new();
             foreach (var msgType in msgTypes)
             {
+                if (msgType.GetAttributes().Any(isIgnoreMsgType)) continue;
                 var refs = await SymbolFinder.FindReferencesAsync(msgType, solution, grainsDocuments);
                 bool isHandleMessageRef = false;
                 foreach(var refer in refs)
@@ -167,6 +172,11 @@ namespace SenAnalyzer
                     if (method != null) return true;
                 }
                 return false;
+            }
+            static bool isIgnoreMsgType(AttributeData attributeData)
+            {
+                return attributeData.AttributeClass?.Name == "HiddenMessageAttribute"
+                    && attributeData.AttributeClass.ContainingAssembly.Name == Constants.SenInterfaces;
             }
         }
 

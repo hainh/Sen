@@ -7,4 +7,9 @@ namespace Sen
     public interface IUnionData
     {
     }
+
+    [System.AttributeUsage(System.AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
+    public sealed class HiddenMessageAttribute : System.Attribute
+    {
+    }
 }
