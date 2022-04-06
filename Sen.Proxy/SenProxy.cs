@@ -30,9 +30,7 @@ namespace Sen.Proxy
         private IEventLoopGroup workGroup;
         private List<IChannel> channels;
 
-        public IServiceProvider Services => null;
-
-        private IPlayerFactory grainFactory;
+        private IProxyServiceProvider proxyServiceProvider;
 
         public SenProxy()
         {
@@ -94,13 +92,13 @@ namespace Sen.Proxy
                             }
                             pipeline.AddLast(new HttpServerCodec(512, 1024, 8192));
                             pipeline.AddLast(new HttpObjectAggregator(100, true));
-                            pipeline.AddLast(new WebSocketServerHandler(grainFactory, ProxyConfig.UseExternalProxy));
+                            pipeline.AddLast(new WebSocketServerHandler(proxyServiceProvider, ProxyConfig));
                         }
                         else if (listener is TcpListener tcpListener)
                         {
                             pipeline.AddLast("frame-enc", new LengthFieldPrepender(4));
                             pipeline.AddLast("frame-dec", new LengthFieldBasedFrameDecoder(1 << 26, 0, 4, 0, 4));
-                            pipeline.AddLast(new TcpSocketServerHandler(grainFactory));
+                            pipeline.AddLast(new TcpSocketServerHandler(proxyServiceProvider, ProxyConfig));
                         }
                     }));
             if (IsUnixLike())
@@ -131,7 +129,8 @@ namespace Sen.Proxy
                         }
                         try
                         {
-                            IChannel channel = await bootstrap.BindAsync(listener.Port);
+                            bool isServerToServer = Array.IndexOf(ProxyConfig.ServerToServerListeners, listener) >= 0;
+                            IChannel channel = isServerToServer ? await bootstrap.BindAsync(IPAddress.Loopback, listener.Port) : await bootstrap.BindAsync(listener.Port);
                             channels.Add(channel);
                             logListenSuccess(logger, listener);
 
@@ -233,9 +232,9 @@ namespace Sen.Proxy
             }
         }
 
-        public void SetGrainFactory(IPlayerFactory grainFactory)
+        public void SetGrainFactory(IProxyServiceProvider grainFactory)
         {
-            this.grainFactory = grainFactory;
+            this.proxyServiceProvider = grainFactory;
         }
     }
 }

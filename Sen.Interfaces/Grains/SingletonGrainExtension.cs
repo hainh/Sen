@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Sen
+namespace Sen.Extension
 {
     public static class SingletonGrainExtension
     {
@@ -12,7 +12,7 @@ namespace Sen
         /// </summary>
         public static TGrain GetGrain<TGrain>(this IGrainFactory grainFactory) where TGrain : ISingletonGrain, IGrainWithStringKey
         {
-            return grainFactory.GetGrain<TGrain>(string.Empty);
+            return grainFactory.GetGrain<TGrain>("singleton");
         }
     }
 }

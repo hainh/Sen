@@ -17,6 +17,8 @@ namespace Sen.Utilities.Configuration
             }
         }
 
+        protected virtual bool WatchForFileChange => true;
+
         public string FullPath { get; protected set; }
 
         private readonly FileSystemWatcher fileSystemWatcher;
@@ -26,8 +28,11 @@ namespace Sen.Utilities.Configuration
         public JsonFileConfig(string fileName)
         {
             FullPath = ConfigDirectory + fileName;
-            fileSystemWatcher = new FileSystemWatcher(Path.GetDirectoryName(FullPath), Path.GetFileName(FullPath));
-            fileSystemWatcher.Changed += FileSystemWatcher_Changed;
+            if (WatchForFileChange)
+            {
+                fileSystemWatcher = new FileSystemWatcher(Path.GetDirectoryName(FullPath), Path.GetFileName(FullPath));
+                fileSystemWatcher.Changed += FileSystemWatcher_Changed;
+            }
         }
 
         public T Load()

@@ -6,6 +6,7 @@
     <ApplicationIcon />
     <OutputType>Library</OutputType>
     <ServerGarbageCollection>true</ServerGarbageCollection>
+    <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>

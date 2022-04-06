@@ -13,8 +13,13 @@ namespace Sen.Proxy
         {
         }
 
+        protected override bool WatchForFileChange => false;
+
         [DefaultValue(UseExternalProxy.None)]
         public UseExternalProxy UseExternalProxy { get; private set; }
+
+        [DefaultValue(typeof(TcpListener[]))]
+        public TcpListener[] ServerToServerListeners { get; private set; }
 
         [DefaultValue(typeof(TcpListener[]))]
         public TcpListener[] TcpListeners { get; private set; }
@@ -26,7 +31,7 @@ namespace Sen.Proxy
         public WebSocketListener[] WebsocketListeners { get; private set; }
 
         [JsonIgnore]
-        public IEnumerable<Listener> Listeners => TcpListeners.Concat<Listener>(WebsocketListeners).Concat(UdpListeners);
+        public IEnumerable<Listener> Listeners => TcpListeners.Concat<Listener>(WebsocketListeners).Concat(UdpListeners).Concat(ServerToServerListeners);
     }
 
     public class Listener : JsonConfig<Listener>

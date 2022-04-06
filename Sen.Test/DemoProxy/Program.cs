@@ -11,7 +11,7 @@ namespace DemoProxy
     {
         public static async Task<int> Main(string[] args)
         {
-            var client = new OrleansProxyClient<IDemoPlayer>();
+            var client = new OrleansProxyClient<IDemoPlayer, IDemoServerToServer>();
             _ = Task.Run(async () =>
             {
                 while (!client.Connected)

@@ -36,16 +36,16 @@ namespace Sen.Proxy
     public class WebSocketServerHandler : SimpleChannelInboundHandler<object>
     {
         static readonly ILogger<WebSocketServerHandler> logger = Logger.LoggerFactory.CreateLogger<WebSocketServerHandler>();
-        readonly IPlayerFactory _playerFactory;
-        readonly UseExternalProxy _useExternalProxy;
+        private readonly ProxyConfig proxyConfig;
+        readonly IProxyServiceProvider proxyServiceProvider;
         const string WebsocketPath = "/websocket";
-        WebSocketServerHandshaker _handshaker;
-        IPlayer _proxyConnection;
+        WebSocketServerHandshaker? _handshaker;
+        IProxyConnection? _proxyConnection;
 
-        public WebSocketServerHandler(IPlayerFactory grainFactory, UseExternalProxy useExternalProxy)
+        public WebSocketServerHandler(IProxyServiceProvider proxyServiceProvider, ProxyConfig proxyConfig)
         {
-            _playerFactory = grainFactory;
-            _useExternalProxy = useExternalProxy;
+            this.proxyServiceProvider = proxyServiceProvider;
+            this.proxyConfig = proxyConfig;
         }
 
         protected override void ChannelRead0(IChannelHandlerContext ctx, object msg)
@@ -92,18 +92,56 @@ namespace Sen.Proxy
                 }
                 else
                 {
-                    IPEndPoint remoteIpEndPoint = ctx.Channel.RemoteAddress as IPEndPoint;
-                    if (_useExternalProxy != UseExternalProxy.None)
+                    try
+                    {
+                        IAuthService authService = proxyServiceProvider.GetAuthServiceGrain();
+                        if (!await authService.Login(uriComponent[0], uriComponent[1]))
+                        {
+                            await ctx.CloseAsync();
+                            return;
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        logger.LogError(e, e.Message, Array.Empty<object>());
+                        await ctx.CloseAsync();
+                    }
+
+                    if (ctx.Channel.RemoteAddress is not IPEndPoint remoteIpEndPoint || ctx.Channel.LocalAddress is not IPEndPoint local_IpEndPoint)
+                    {
+                        await ctx.CloseAsync();
+                        return;
+                    }
+
+                    if (proxyConfig.UseExternalProxy != UseExternalProxy.None)
                     {
                         remoteIpEndPoint = GetRealRemoteEndPoint(req, remoteIpEndPoint);
+                    }
+                    bool authenticated;
+                    try
+                    {
+                        IAuthService authService = proxyServiceProvider.GetAuthServiceGrain();
+                        authenticated = await authService.Login(uriComponent[1], uriComponent[2]);
+                        if (!authenticated)
+                        {
+                            await ctx.CloseAsync();
+                            return;
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        logger.LogError(e, e.Message, Array.Empty<object>());
+                        await ctx.CloseAsync();
+                        return;
                     }
 
                     ClientObserverWs clientObserverWs = new(ctx);
                     //Create the grain to communicate with the server(silo)
-                    _proxyConnection = _playerFactory.CreatePlayer(uriComponent[1]);
-                    IClientObserver observer = await _playerFactory.CreateObserver(clientObserverWs);
-                    if (await _proxyConnection.InitConnection(ctx.Channel.LocalAddress.ToString(), remoteIpEndPoint.ToString(),
-                         username: uriComponent[1], accessToken: uriComponent[2], observer))
+                    IPlayer player = proxyServiceProvider.GetPlayer(uriComponent[0]);
+                    _proxyConnection = player;
+                    IClientObserver observer = await proxyServiceProvider.CreateObserver(clientObserverWs);
+                    await player.InitConnection(local_IpEndPoint.Port, remoteIpEndPoint.Address.ToString(), observer);
+                    if (authenticated)
                     {
                         await _handshaker.HandshakeAsync(ctx.Channel, req);
                     }
@@ -120,7 +158,7 @@ namespace Sen.Proxy
             // Check for closing frame
             if (frame is CloseWebSocketFrame)
             {
-                _handshaker.CloseAsync(ctx.Channel, (CloseWebSocketFrame)frame.Retain());
+                _handshaker?.CloseAsync(ctx.Channel, (CloseWebSocketFrame)frame.Retain());
                 return;
             }
 
@@ -149,6 +187,7 @@ namespace Sen.Proxy
         {
             try
             {
+                if (_proxyConnection == null) return;
                 var buffer = new byte[frame.Content.ReadableBytes];
                 frame.Content.ReadBytes(buffer);
                 var dataWriteBack = await _proxyConnection.OnReceivedData(buffer.AsImmutable());
@@ -211,7 +250,7 @@ namespace Sen.Proxy
 
         IPEndPoint GetRealRemoteEndPoint(IFullHttpRequest req, IPEndPoint defaultEndPoint)
         {
-            switch (_useExternalProxy)
+            switch (proxyConfig.UseExternalProxy)
             {
                 //case UseExternalProxy.None:
                 //    return defaultEndPoint;

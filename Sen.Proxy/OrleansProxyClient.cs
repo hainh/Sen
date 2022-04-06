@@ -2,26 +2,33 @@
 using Microsoft.Extensions.Logging;
 using NLog.Extensions.Logging;
 using Orleans;
-using Orleans.Concurrency;
 using Orleans.Hosting;
+using Sen.Extension;
 using Sen.Utilities.Console;
 using System;
 using System.Threading.Tasks;
-using System.Threading;
 
 namespace Sen.Proxy
 {
-    public class OrleansProxyClient<TPlayerGrain> : IPlayerFactory where TPlayerGrain : IPlayer, IGrainWithStringKey
+    public class OrleansProxyClient<TPlayerGrain, TServerToServerGrain> : IProxyServiceProvider
+        where TPlayerGrain : IPlayer, IGrainWithStringKey
+        where TServerToServerGrain : IServerToServerGrain, IGrainWithStringKey
     {
-        static readonly ILogger<OrleansProxyClient<TPlayerGrain>> logger = Logger.LoggerFactory.CreateLogger<OrleansProxyClient<TPlayerGrain>>();
+        static readonly ILogger<OrleansProxyClient<TPlayerGrain, TServerToServerGrain>> logger
+            = Logger.LoggerFactory.CreateLogger<OrleansProxyClient<TPlayerGrain, TServerToServerGrain>>();
 
         public IClusterClient OrleansClusterClient { get; private set; }
 
-        public IPlayer CreatePlayer(string playerId) => OrleansClusterClient.GetGrain<TPlayerGrain>(playerId);
+        IPlayer IProxyServiceProvider.GetPlayer(string playerId) => OrleansClusterClient.GetGrain<TPlayerGrain>(playerId);
+
+        IServerToServerGrain IProxyServiceProvider.CreateServerToServerPeer(string leafServerId)
+            => OrleansClusterClient.GetGrain<TServerToServerGrain>(leafServerId);
+
+        IAuthService IProxyServiceProvider.GetAuthServiceGrain() => OrleansClusterClient.GetGrain<IAuthService>();
 
         public bool Connected { get; private set; }
 
-        Task<IClientObserver> IPlayerFactory.CreateObserver<T>(T observer)
+        Task<IClientObserver> IProxyServiceProvider.CreateObserver<T>(T observer)
         {
             return OrleansClusterClient.CreateObjectReference<IClientObserver>(observer);
         }

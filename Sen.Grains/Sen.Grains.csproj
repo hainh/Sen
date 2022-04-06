@@ -18,13 +18,17 @@
   </ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="Sen.Server"/>
+    <InternalsVisibleTo Include="Sen.Server" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\ObjectPool\src\Microsoft.Extensions.ObjectPool.csproj" />
     <ProjectReference Include="..\Sen.Interfaces\Sen.Interfaces.csproj" />
     <ProjectReference Include="..\Sen.Utilities\Sen.Utilities.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Grains\" />
   </ItemGroup>
 
 </Project>
