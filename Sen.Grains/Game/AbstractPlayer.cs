@@ -21,14 +21,14 @@ namespace Sen
     /// </summary>
     /// <typeparam name="TUnionData">MessagePack's Union interface root of all message types</typeparam>
     /// <typeparam name="TGrainState">Grain state</typeparam>
-    public abstract class AbstractPlayer<TUnionData, TState> : BaseScheduleGrain, IPlayer where TState : IPlayerState
+    public abstract class AbstractPlayer<TUnionData, TState> : BaseGrain, IPlayer where TState : IPlayerState
          where TUnionData : IUnionData
     {
-        private IClientObserver _clientObserver;
+        private IClientObserver? _clientObserver;
 
         public int LocalPort { get; private set; }
-        public string RemoteAddress { get; private set; }
-        public ValueTask<IRoom> GetRoom() => new(profile.State.Room);
+        public string? RemoteAddress { get; private set; }
+        public ValueTask<IRoom?> GetRoom() => new(profile.State.Room);
 
         public string Name => profile.State.Name;
 
@@ -49,15 +49,16 @@ namespace Sen
             return false;
         }
 
-        public ValueTask<bool> LeaveRoom()
+        public async ValueTask<bool> LeaveRoom()
         {
             if (profile.State.Room == null)
             {
-                return ValueTask.FromResult(false);
+                return false;
             }
+            var result = await profile.State.Room.LeaveRoom(Me, Name);
             profile.State.Room = null;
-            profile.WriteStateAsync();
-            return profile.State.Room.LeaveRoom(Me, Name);
+            await profile.WriteStateAsync();
+            return result;
         }
 
         public ValueTask<bool> IsBot() => new(profile.State.IsBot);
@@ -75,7 +76,7 @@ namespace Sen
         /// <returns><code>true</code> if authenticated successfully, <code>false</code> otherwise</returns>
         protected abstract ValueTask<bool> CheckAccessToken(string accessToken);
 
-        private IPlayer _me = null;
+        private IPlayer? _me = null;
         protected IPlayer Me => _me ??= this.AsReference<IPlayer>();
         protected readonly IPersistentState<TState> profile;
 
@@ -111,7 +112,7 @@ namespace Sen
             {
                 return (TUnionData)await profile.State.Room.HandleRoomMessage(message, Me, networkOptions);
             }
-            return default;
+            return default!;
         }
 
         /// <summary>
@@ -119,20 +120,9 @@ namespace Sen
         /// </summary>
         /// <param name="data"></param>
         /// <returns></returns>
-        public async ValueTask<Immutable<byte[]>> OnReceivedData(Immutable<byte[]> data)
+        public ValueTask<Immutable<byte[]>> OnReceivedData(Immutable<byte[]> data)
         {
-            NetworkOptions networkOptions = NetworkOptions.Create((ushort)((data.Value[1] << 8) | data.Value[0]));
-            var rawData = new ReadOnlyMemory<byte>(data.Value, sizeof(ushort), data.Value.Length - sizeof(ushort));
-            TUnionData wiredData = MessagePackSerializer.Deserialize<TUnionData>(rawData);
-            dynamic message = wiredData;
-            TUnionData returnedData = (TUnionData)await ((dynamic)this).HandleMessage(message, networkOptions);
-            byte[] returnedBytes = null;
-            if (returnedData != null)
-            {
-                returnedBytes = SerializeData(returnedData, networkOptions);
-            }
-            NetworkOptions.Return(networkOptions);
-            return new Immutable<byte[]>(returnedBytes);
+            return HandleData<TUnionData>(data);
         }
 
         public ValueTask SendData(Immutable<IUnionData> message, NetworkOptions networkOptions)
@@ -143,38 +133,27 @@ namespace Sen
 
         public ValueTask SendData(Immutable<byte[]> raw)
         {
-            _clientObserver?.ReceiveData(raw);
+            if (_clientObserver != null && raw.Value != null)
+            {
+                _clientObserver.ReceiveData(raw);
+            }
             return ValueTask.CompletedTask;
         }
 
-        public static ValueTask Broadcast(TUnionData message, IEnumerable<IPlayer> players, NetworkOptions networkOptions)
+        public static void Broadcast(TUnionData message, IEnumerable<IPlayer> players, NetworkOptions networkOptions)
         {
             var rawData = SerializeData(message, networkOptions).AsImmutable();
             foreach (var player in players)
             {
                 player.SendData(rawData);
             }
-            return ValueTask.CompletedTask;
-        }
-
-        private static byte[] SerializeData(TUnionData message, NetworkOptions networkOptions)
-        {
-            var memStream = _memStreamPool.Get();
-            ushort serviceCode = networkOptions.ToServiceCode();
-            memStream.WriteByte((byte)serviceCode);
-            memStream.WriteByte((byte)(serviceCode >> 8));
-            MessagePackSerializer.Serialize(memStream, message);
-
-            byte[] data = memStream.ToArray();
-            _memStreamPool.Return(memStream);
-            return data;
         }
 
         //protected abstract void SerializeData(MemoryStream stream, I)
 
         public ValueTask Disconnect()
         {
-            Console.WriteLine("Disconnect " + RemoteAddress.ToString());
+            Console.WriteLine("Disconnect " + RemoteAddress?.ToString());
             return ValueTask.CompletedTask;
         }
 
@@ -188,53 +167,6 @@ namespace Sen
         public override Task OnDeactivateAsync()
         {
             return profile.WriteStateAsync();
-        }
-
-        private static readonly ObjectPool<MemoryStream> _memStreamPool = 
-            new DefaultObjectPool<MemoryStream>(new MemoryStreamPooledObjectPolicy(), MemoryStreamPooledObjectPolicy.MaximumRetained);
-    }
-
-    public class MemoryStreamPooledObjectPolicy : PooledObjectPolicy<MemoryStream>
-    {
-        public override MemoryStream Create()
-        {
-            return new MemoryStream(1024);
-        }
-
-        public const int MaximumRetained = 512;
-        private const int MaximunLargeStreamRetain = MaximumRetained / 4;
-
-        private const int MaxStreamCapacity = 128 * 1024;
-        private const int LargeStreamCapacity = 8 * 1024;
-
-        private int _countLargeStream = 0;
-        public override bool Return(MemoryStream obj)
-        {
-            if (obj.Capacity > MaxStreamCapacity)
-            {
-                return false;
-            }
-            if (obj.Capacity > LargeStreamCapacity)
-            {
-                if (_countLargeStream < MaximunLargeStreamRetain)
-                {
-                    ++_countLargeStream;
-                }
-                else
-                {
-                    return false;
-                }
-            }
-            obj.SetLength(0);
-            return true;
-        }
-
-        public override void OnCreateFromPool(MemoryStream obj)
-        {
-            if (obj.Capacity > LargeStreamCapacity && _countLargeStream > 0)
-            {
-                --_countLargeStream;
-            }
         }
     }
 }

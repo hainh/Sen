@@ -8,6 +8,7 @@
     <IsAspNetCoreApp>true</IsAspNetCoreApp>
     <Trimmable>true</Trimmable>
     <AssemblyName>$(MSBuildProjectName)1</AssemblyName>
+    <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>

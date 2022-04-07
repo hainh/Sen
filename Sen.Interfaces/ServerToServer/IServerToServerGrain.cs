@@ -5,6 +5,6 @@ namespace Sen
 {
     public interface IServerToServerGrain : IProxyConnection
     {
-        ValueTask<bool> InitConnection(string leafServerName, IClientObserver observer);
+        ValueTask InitConnection(string leafServerName, IClientObserver observer);
     }
 }

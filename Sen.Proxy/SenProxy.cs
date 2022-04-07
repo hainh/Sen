@@ -26,11 +26,11 @@ namespace Sen.Proxy
 
         readonly ILogger<SenProxy> logger = Logger.LoggerFactory.CreateLogger<SenProxy>();
 
-        private IEventLoopGroup bossGroup;
-        private IEventLoopGroup workGroup;
-        private List<IChannel> channels;
+        private IEventLoopGroup? bossGroup;
+        private IEventLoopGroup? workGroup;
+        private List<IChannel>? channels;
 
-        private IProxyServiceProvider proxyServiceProvider;
+        private IProxyServiceProvider? proxyServiceProvider;
 
         public SenProxy()
         {
@@ -119,7 +119,7 @@ namespace Sen.Proxy
             {
                 foreach (Listener listener in ProxyConfig.Listeners)
                 {
-                    if (channels.All(c => (c.LocalAddress as IPEndPoint).Port != listener.Port))
+                    if (channels.All(c => (c.LocalAddress as IPEndPoint)?.Port != listener.Port))
                     {
                         if (listener.UseTLS && !Certificates.ContainsKey(listener.CertificateName))
                         {
@@ -184,7 +184,7 @@ namespace Sen.Proxy
             }
         }
 
-        private static X509Certificate2 GetCertificateFromStore(StoreLocation storeLocation, string certName)
+        private static X509Certificate2? GetCertificateFromStore(StoreLocation storeLocation, string certName)
         {
             // Get the certificate store for the current user.
             X509Store store = new X509Store(storeLocation);
@@ -208,25 +208,25 @@ namespace Sen.Proxy
             }
         }
 
-        private Listener GetListener(int port)
+        private Listener? GetListener(int port)
         {
             return ProxyConfig.Listeners.FirstOrDefault(l => l.Port == port);
         }
 
         public async Task StopAsync()
         {
-            if (channels.Count > 0)
+            if (channels?.Count > 0)
             {
                 await Task.WhenAll(channels.Select(c => c.CloseAsync()));
             }
 
-            await workGroup.ShutdownGracefullyAsync();
-            await bossGroup.ShutdownGracefullyAsync();
+            await (workGroup?.ShutdownGracefullyAsync() ?? Task.CompletedTask);
+            await (bossGroup?.ShutdownGracefullyAsync() ?? Task.CompletedTask);
         }
 
         public void Dispose()
         {
-            if (!workGroup.IsShuttingDown)
+            if (!workGroup?.IsShuttingDown??false)
             {
                 StopAsync().Wait();
             }

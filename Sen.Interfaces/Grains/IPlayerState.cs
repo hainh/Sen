@@ -8,7 +8,7 @@ namespace Sen
     public interface IPlayerState
     {
         string Name { get; set; }
-        IRoom Room { get; set; }
+        IRoom? Room { get; set; }
         bool IsBot { get; set; }
     }
 }

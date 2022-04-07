@@ -11,21 +11,22 @@ namespace Sen
     /// <inheritdoc/>
     public abstract class AbstractLobby<TState> : AbstractRoom<TState>, ILobby where TState : ILobbyState
     {
-        public event RoomChanged RoomAdded;
+        public event RoomChanged? RoomAdded;
 
-        public event RoomChanged RoomRemoved;
+        public event RoomChanged? RoomRemoved;
 
         protected IList<IRoom> _rooms;
 
         public AbstractLobby(IPersistentState<TState> persistent) : base(persistent)
         {
+            _rooms = new List<IRoom>();
         }
 
         public ValueTask<IList<IRoom>> GetRooms() => new(_rooms);
 
         public override ValueTask<bool> IsLobby() => new(true);
 
-        public async ValueTask<IRoom> FindRoom(string roomName)
+        public async ValueTask<IRoom?> FindRoom(string roomName)
         {
             foreach (IRoom room in _rooms)
             {

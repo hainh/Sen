@@ -16,8 +16,8 @@ namespace Sen
         /// <returns>Data to write back to client</returns>
         ValueTask<Immutable<byte[]>> OnReceivedData(Immutable<byte[]> data); // Read data from client
         /// <summary>
-        /// Call this method to close the connection
+        /// Raises on connection closed
         /// </summary>
-        ValueTask Disconnect();
+        ValueTask OnDisconnect();
     }
 }

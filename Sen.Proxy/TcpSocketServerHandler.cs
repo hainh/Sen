@@ -29,9 +29,7 @@ namespace Sen.Proxy
         {
             try
             {
-                byte[] payloadSize = new byte[4];
-                TelepathyUtils.IntToBytesBigEndianNonAlloc(data.Value.Length, payloadSize);
-                var result = Unpooled.WrappedBuffer(payloadSize, data.Value);
+                var result = Unpooled.WrappedBuffer(data.Value);
                 context.WriteAndFlushAsync(result);
             }
             catch (Exception e)
@@ -48,22 +46,11 @@ namespace Sen.Proxy
 
     public class TcpSocketServerHandler : ChannelHandlerAdapter
     {
-        //protected static readonly log4net.ILog ioLogger = IOLogger.CreateLogger();
-        //protected readonly ApplicationBase application;
-
-        //private IPEndPoint remoteEndpoint;
-        //private IPEndPoint localEndpoint;
-        //private IChannelHandlerContext context;
-        //private DisconnectReason disconnectReason = DisconnectReason.ServerDisconnect;
-        //private readonly ISerializer serializer;
-        //private readonly IDeserializer deserializer;
-        //private PeerBase _peerBase;
-        //private readonly QueueBuffer<byte> buffer;
-
         static readonly ILogger<TcpSocketServerHandler> logger = Logger.LoggerFactory.CreateLogger<TcpSocketServerHandler>();
         private readonly IProxyServiceProvider proxyServiceProvider;
         private readonly ProxyConfig _proxyConfig;
         IProxyConnection? _proxyConnection;
+        bool authenticated;
 
         public TcpSocketServerHandler(IProxyServiceProvider proxyServiceProvider, ProxyConfig proxyConfig)
         {
@@ -81,11 +68,11 @@ namespace Sen.Proxy
                     await ctx.CloseAsync();
                     return;
                 }
-                if (_proxyConnection != null)
+                if (authenticated)
                 {
                     var buffer = new byte[cast.ReadableBytes];
                     cast.ReadBytes(buffer);
-                    var dataWriteBack = await _proxyConnection.OnReceivedData(buffer.AsImmutable());
+                    var dataWriteBack = await _proxyConnection!.OnReceivedData(buffer.AsImmutable());
                     if (dataWriteBack.Value != null)
                     {
                         var result = Unpooled.WrappedBuffer(dataWriteBack.Value);
@@ -113,12 +100,16 @@ namespace Sen.Proxy
                         if (Array.FindIndex(_proxyConfig.ServerToServerListeners, listener => listener.Port == local_IpEndPoint.Port) < 0
                             || !local_IpEndPoint.Address.Equals(IPAddress.Loopback))
                         {
-                            _proxyConnection = proxyServiceProvider.CreateServerToServerPeer("");
+                            IServerToServerGrain s2sConnection = proxyServiceProvider.CreateServerToServerPeer("");
+                            _proxyConnection = s2sConnection;
+                            ClientObserverTcp clientObserverTcp = new(ctx);
+                            IClientObserver observer = await proxyServiceProvider.CreateObserver(clientObserverTcp);
+                            await s2sConnection.InitConnection("", observer);
+                            authenticated = true;
                         }
                     }
                     else
                     {
-                        bool authenticated;
                         try
                         {
                             IAuthService authService = proxyServiceProvider.GetAuthServiceGrain();
@@ -142,10 +133,7 @@ namespace Sen.Proxy
                         _proxyConnection = player;
                         IClientObserver observer = await proxyServiceProvider.CreateObserver(clientObserverTcp);
                         await player.InitConnection(local_IpEndPoint.Port, remoteIpEndPoint.Address.ToString(), observer);
-                        if (authenticated)
-                        {
-                            await ctx.WriteAndFlushAsync(ctx.Allocator.Buffer(1).WriteByte(1));
-                        }
+                        await ctx.WriteAndFlushAsync(ctx.Allocator.Buffer(1).WriteByte(1));
                     }
                 }
             }
@@ -162,7 +150,7 @@ namespace Sen.Proxy
         {
             if (_proxyConnection != null)
             {
-                _proxyConnection.Disconnect();
+                _proxyConnection.OnDisconnect();
                 _proxyConnection = null;
             }
             base.ChannelInactive(context);

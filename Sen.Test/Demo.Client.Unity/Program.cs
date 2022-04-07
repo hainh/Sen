@@ -61,7 +61,7 @@ public class MessageHandler : IMessageHandler
         Console.WriteLine("No message handler for " + message.GetType().FullName);
     }
 
-    public void HandleMessage(IUnionData message, NetworkOptions networkOptions)
+    public void DispatchMessage(IUnionData message, NetworkOptions networkOptions)
     {
         ((dynamic)this).HandleMessage((dynamic)message, networkOptions);
     }

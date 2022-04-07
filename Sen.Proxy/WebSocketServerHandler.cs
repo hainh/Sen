@@ -8,6 +8,7 @@ using Orleans.Concurrency;
 using Sen;
 using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
@@ -243,7 +244,7 @@ namespace Sen.Proxy
         {
             if (_proxyConnection != null)
             {
-                _proxyConnection.Disconnect();
+                _proxyConnection.OnDisconnect();
             }
             base.ChannelInactive(context);
         }
@@ -255,8 +256,8 @@ namespace Sen.Proxy
                 //case UseExternalProxy.None:
                 //    return defaultEndPoint;
                 case UseExternalProxy.CloudFlare:
-                    if (GetIPAddressInHeaders(req, "cf-connecting-ip", out IPAddress ip)
-                        || GetIPAddressInHeaders(req, "true-client-ip", out ip))
+                    if (TryGetIPAddressInHeaders(req, "cf-connecting-ip", out IPAddress? ip)
+                        || TryGetIPAddressInHeaders(req, "true-client-ip", out ip))
                     {
                         return new IPEndPoint(ip, defaultEndPoint.Port);
                     }
@@ -278,7 +279,7 @@ namespace Sen.Proxy
             return defaultEndPoint;
         }
 
-        static bool GetIPAddressInHeaders(IFullHttpRequest req, string name, out IPAddress ip)
+        static bool TryGetIPAddressInHeaders(IFullHttpRequest req, string name, [NotNullWhen(returnValue: true)] out IPAddress? ip)
         {
             var value = req.Headers.Get(new AsciiString(name), null);
             if (value != null && IPAddress.TryParse(value.ToString(), out ip))

@@ -14,34 +14,32 @@ namespace Sen
     /// handle each message type from player
     /// </para>
     /// </summary>
-    public abstract class AbstractRoom<TState> : BaseScheduleGrain, IRoom where TState : IRoomState
+    public abstract class AbstractRoom<TState> : BaseGrain, IRoom where TState : IRoomState
     {
-        public event PlayerChange PlayerJoined;
+        public event PlayerChange? PlayerJoined;
 
-        public event PlayerChange PlayerLeft;
+        public event PlayerChange? PlayerLeft;
 
-        public event PlayerChange PlayerJoining;
+        public event PlayerChange? PlayerJoining;
 
-        public event PlayerChange PlayerLeaving;
+        public event PlayerChange? PlayerLeaving;
 
         public ValueTask<long> GetMatchId() => new(persistent.State.MatchId);
 
         public ValueTask<string> GetRoomName() => new(persistent.State.RoomName);
 
-        public ValueTask<string> GetPassword() => new(persistent.State.Password);
+        public ValueTask<string?> GetPassword() => new(persistent.State.Password);
 
         public ValueTask<int> GetPlayerLimit() => new(persistent.State.PlayerLimit);
 
-        public ValueTask<ILobby> GetParent() => new(persistent.State.Parent);
+        public ValueTask<ILobby?> GetParent() => new(persistent.State.Parent);
 
         public virtual ValueTask<bool> IsLobby() => new(false);
 
-        public ValueTask<bool> IsFull() => new(persistent.State.Players.Count >= persistent.State.PlayerLimit);
+        public ValueTask<bool> IsFull() => new(persistent.State.Players?.Count >= persistent.State.PlayerLimit);
 
         public ValueTask<ICollection<IPlayer>> GetPlayers() => new(persistent.State.Players.Values);
 
-        private IRoom _me = null;
-        protected IRoom Me => _me ??= this.AsReference<IRoom>();
         protected readonly IPersistentState<TState> persistent;
 
         public AbstractRoom(IPersistentState<TState> persistent)
@@ -121,7 +119,7 @@ namespace Sen
             return persistent.State.Players.Remove(await player.GetName());
         }
 
-        public ValueTask SetParent(ILobby room)
+        public ValueTask SetParent(ILobby? room)
         {
             persistent.State.Parent = room;
             return default;

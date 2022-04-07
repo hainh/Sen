@@ -13,7 +13,7 @@ namespace Sen
         /// <summary>
         /// Get current room
         /// </summary>
-        ValueTask<IRoom> GetRoom();
+        ValueTask<IRoom?> GetRoom();
         /// <summary>
         /// Set Room this player is living
         /// </summary>
@@ -51,8 +51,8 @@ namespace Sen
         /// <returns></returns>
         ValueTask SendData(Immutable<byte[]> data);
         /// <summary>
-        /// Raises on connection closed
+        /// Call this method to close the connection
         /// </summary>
-        ValueTask OnDisconnect();
+        ValueTask Disconnect();
     }
 }

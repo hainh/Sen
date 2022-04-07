@@ -15,7 +15,7 @@ namespace Sen
         /// </summary>
         /// <param name="roomName"></param>
         /// <returns></returns>
-        ValueTask<IRoom> FindRoom(string roomName);
+        ValueTask<IRoom?> FindRoom(string roomName);
         /// <summary>
         /// Add new Room
         /// </summary>

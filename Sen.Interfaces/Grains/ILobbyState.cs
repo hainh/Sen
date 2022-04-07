@@ -6,6 +6,6 @@ namespace Sen
 {
     public interface ILobbyState : IRoomState
     {
-        IList<IRoom> Rooms { get; set; }
+        IList<IRoom>? Rooms { get; set; }
     }
 }

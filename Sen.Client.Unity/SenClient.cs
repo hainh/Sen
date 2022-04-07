@@ -14,9 +14,12 @@ namespace Sen
 
         private AbstractClient client;
 
+#if DEBUG
         private int dataCount = 0;
         private int messCount = 0;
         DateTime lastUpdated = DateTime.UtcNow;
+        public bool EnablePerfCount = true;
+#endif
 
         public SenClient(string ipAddress, int port, IMessageHandler messageHandler)
         {
@@ -58,8 +61,13 @@ namespace Sen
 
         void ISenClient.HandleData(ArraySegment<byte> data)
         {
-            dataCount += data.Count;
-            ++messCount;
+#if DEBUG
+            if (EnablePerfCount)
+            {
+                dataCount += data.Count;
+                ++messCount;
+            }
+#endif
             byte[] buffer = data.Array;
             if (!authorized)
             {
@@ -104,14 +112,19 @@ namespace Sen
         public void Tick(int processLimit)
         {
             client.Tick(processLimit);
-            var span = (DateTime.UtcNow - lastUpdated).TotalSeconds;
-            if (span >= 1)
+#if DEBUG
+            if (EnablePerfCount)
             {
-                Console.WriteLine($"Data Speed {dataCount / span / 1024}KBps, {messCount / span}mps");
-                lastUpdated = DateTime.UtcNow;
-                messCount = 0;
-                dataCount = 0;
+                var span = (DateTime.UtcNow - lastUpdated).TotalSeconds;
+                if (span >= 5)
+                {
+                    Console.WriteLine($"Data Speed {dataCount / span / 1024}KBps, {messCount / span}mps");
+                    lastUpdated = DateTime.UtcNow;
+                    messCount = 0;
+                    dataCount = 0;
+                }
             }
+#endif
         }
 
         public void Disconnect()

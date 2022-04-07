@@ -9,6 +9,6 @@ namespace Sen
 {
     public class HostManager
     {
-        public static IHost Host { get; internal set; }
+        public static IHost Host { get; internal set; } = null!;
     }
 }
