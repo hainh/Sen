@@ -74,7 +74,7 @@ namespace Sen
             NetworkOptions options = new NetworkOptions();
             options.SetValues(serviceCode);;
             var message = MessagePack.MessagePackSerializer.Deserialize<TUnionData>(new ReadOnlyMemory<byte>(buffer, data.Offset + 2, data.Count - 2));
-            messageHandler.HandleMessage(message, options);
+            messageHandler.DispatchMessage(message, options);
         }
 
         readonly MemoryStream memory = new MemoryStream(256 * 1024);
