@@ -175,7 +175,7 @@ namespace SenAnalyzer
             }
             static bool isIgnoreMsgType(AttributeData attributeData)
             {
-                return attributeData.AttributeClass?.Name == "HiddenMessageAttribute"
+                return attributeData.AttributeClass?.Name == Constants.NotHandleMessageAttribute
                     && attributeData.AttributeClass.ContainingAssembly.Name == Constants.SenInterfaces;
             }
         }

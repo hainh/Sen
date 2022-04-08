@@ -6,6 +6,7 @@ namespace SenAnalyzer
 {
     internal class Constants
     {
+        public const string NotHandleMessageAttribute = "NotHandleMessageAttribute";
         public const string SenPlayerClassName = "AbstractPlayer";
         public const string SenRoomClassName = "AbstractRoom";
         public const string NetworkOptions = "NetworkOptions";

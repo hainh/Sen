@@ -32,6 +32,15 @@ namespace Sen.Proxy
 
         [JsonIgnore]
         public IEnumerable<Listener> Listeners => TcpListeners.Concat<Listener>(WebsocketListeners).Concat(UdpListeners).Concat(ServerToServerListeners);
+
+        protected override void ManualValidate()
+        {
+            if (ServerToServerListeners.Length > 1) throw new Exception($"{nameof(ServerToServerListeners)} must have at most 01 listener.");
+            if (ServerToServerListeners.Length == 1 && TcpListeners.Concat<Listener>(WebsocketListeners).Concat(UdpListeners).Any(listener => listener.Port == ServerToServerListeners[0].Port))
+            {
+                throw new Exception($"{nameof(ServerToServerListeners)} Port number cannot use same as other ports");
+            }
+        }
     }
 
     public class Listener : JsonConfig<Listener>

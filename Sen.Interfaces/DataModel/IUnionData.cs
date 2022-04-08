@@ -9,7 +9,7 @@ namespace Sen
     }
 
     [System.AttributeUsage(System.AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
-    public sealed class HiddenMessageAttribute : System.Attribute
+    public sealed class NotHandleMessageAttribute : System.Attribute
     {
     }
 }

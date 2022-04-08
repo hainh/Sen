@@ -1,18 +1,10 @@
 ﻿using DotNetty.Buffers;
-using DotNetty.Codecs.Http;
-using DotNetty.Codecs.Http.WebSockets;
-using DotNetty.Common.Utilities;
 using DotNetty.Transport.Channels;
 using Microsoft.Extensions.Logging;
 using Orleans.Concurrency;
-using Sen;
 using System;
-using System.Diagnostics;
 using System.Net;
 using System.Text;
-using System.Threading.Tasks;
-using static DotNetty.Codecs.Http.HttpResponseStatus;
-using static DotNetty.Codecs.Http.HttpVersion;
 
 namespace Sen.Proxy
 {
@@ -97,15 +89,24 @@ namespace Sen.Proxy
                     if (uriComponent[0] == "@@LeafServer@@Hello")
                     {
                         Listener? s2sListener = _proxyConfig.ServerToServerListeners.Length == 0 ? null : _proxyConfig.ServerToServerListeners[0];
-                        if (Array.FindIndex(_proxyConfig.ServerToServerListeners, listener => listener.Port == local_IpEndPoint.Port) < 0
-                            || !local_IpEndPoint.Address.Equals(IPAddress.Loopback))
+                        if (s2sListener == null)
                         {
-                            IServerToServerGrain s2sConnection = proxyServiceProvider.CreateServerToServerPeer("");
+                            await ctx.CloseAsync();
+                            return;
+                        }
+                        if (s2sListener.Port == local_IpEndPoint.Port && local_IpEndPoint.Address.Equals(IPAddress.Loopback))
+                        {
+                            IServerToServerGrain s2sConnection = proxyServiceProvider.CreateServerToServerPeer(uriComponent[1]);
                             _proxyConnection = s2sConnection;
                             ClientObserverTcp clientObserverTcp = new(ctx);
                             IClientObserver observer = await proxyServiceProvider.CreateObserver(clientObserverTcp);
                             await s2sConnection.InitConnection("", observer);
                             authenticated = true;
+                        }
+                        else
+                        {
+                            await ctx.CloseAsync();
+                            return;
                         }
                     }
                     else

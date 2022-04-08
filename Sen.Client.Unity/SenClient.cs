@@ -5,8 +5,8 @@ namespace Sen
 {
     public class SenClient<TUnionData> : ISenClient where TUnionData : IUnionData
     {
-        private readonly string ipAddress;
-        private readonly int port;
+        private string ipAddress;
+        private int port;
         private readonly IMessageHandler messageHandler;
         private string username;
         private string password;
@@ -15,6 +15,36 @@ namespace Sen
 
         private AbstractClient client;
 
+        /// <summary>
+        /// Socket connected but not fully authorized
+        /// </summary>
+        public bool Connected { get; private set; }
+
+        /// <summary>
+        /// Is fully authorized
+        /// </summary>
+        public bool Authorized => authorized;
+
+        /// <summary>
+        /// Current connection state
+        /// </summary>
+        public ConnectionState ConnectionState { get; private set; }
+
+        /// <summary>
+        /// Current connection's protocol
+        /// </summary>
+        public Protocol Protocol => protocol;
+
+        /// <summary>
+        /// Current port to connect
+        /// </summary>
+        public int Port => port;
+
+        /// <summary>
+        /// Current ip address to connect
+        /// </summary>
+        public string IpAddress => ipAddress;
+
 #if DEBUG
         private int dataCount = 0;
         private int messCount = 0;
@@ -22,17 +52,17 @@ namespace Sen
         public bool EnablePerfCount = false;
 #endif
 
-        public SenClient(string ipAddress, int port, IMessageHandler messageHandler)
+        public SenClient(IMessageHandler messageHandler)
         {
-            this.ipAddress = ipAddress;
-            this.port = port;
             this.messageHandler = messageHandler;
         }
 
-        public void Connect(Protocol protocol, string username, string password)
+        public void Connect(Protocol protocol, string ipAddress, int port, string username, string password)
         {
             System.Diagnostics.Debug.Assert(!string.IsNullOrEmpty(username));
             System.Diagnostics.Debug.Assert(!string.IsNullOrEmpty(password));
+            this.ipAddress = ipAddress;
+            this.port = port;
             this.username = username;
             this.password = password;
             this.protocol = protocol;
@@ -53,7 +83,7 @@ namespace Sen
 
         public void Reconnect()
         {
-            Connect(protocol, username, password);
+            Connect(protocol, IpAddress, port, username, password);
         }
 
         public void SendAuthorityOnConnected()
@@ -63,6 +93,24 @@ namespace Sen
 
         public void OnStateChange(ConnectionState state)
         {
+            ConnectionState = state;
+            switch (state)
+            {
+                case ConnectionState.Connecting:
+                    break;
+                case ConnectionState.Connected:
+                    Connected = true;
+                    break;
+                case ConnectionState.Authorized:
+                    authorized = true;
+                    break;
+                case ConnectionState.Disconnected:
+                    Connected = false;
+                    authorized = false;
+                    break;
+                default:
+                    break;
+            }
             messageHandler.OnStateChange(state);
         }
 
@@ -80,7 +128,6 @@ namespace Sen
             {
                 if (data.Count == 1 && buffer[data.Offset] == 1)
                 {
-                    authorized = true;
                     OnStateChange(ConnectionState.Authorized);
                 }
                 return;
@@ -136,7 +183,10 @@ namespace Sen
 
         public void Disconnect()
         {
-            client.Disconnect();
+            if (client.Connected)
+            {
+                client.Disconnect();
+            }
         }
     }
 }

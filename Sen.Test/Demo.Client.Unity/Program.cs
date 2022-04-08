@@ -19,12 +19,12 @@ public class MessageHandler : IMessageHandler
 
     public MessageHandler()
     {
-        client = new SenClient<IDemoUnionData>("127.0.0.1", 6666, this);
+        client = new SenClient<IDemoUnionData>(this);
     }
 
     public void Run()
     {
-        client.Connect(Protocol.Tcp, "demo", "?????");
+        client.Connect(Protocol.Tcp, "127.0.0.1", 6666, "demo", "?????");
         Task.Run(async() =>
         {
             while (true)
