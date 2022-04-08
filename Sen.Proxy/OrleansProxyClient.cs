@@ -17,7 +17,7 @@ namespace Sen.Proxy
         static readonly ILogger<OrleansProxyClient<TPlayerGrain, TServerToServerGrain>> logger
             = Logger.LoggerFactory.CreateLogger<OrleansProxyClient<TPlayerGrain, TServerToServerGrain>>();
 
-        public IClusterClient OrleansClusterClient { get; private set; }
+        public IClusterClient OrleansClusterClient { get; private set; } = null!;
 
         IPlayer IProxyServiceProvider.GetPlayer(string playerId) => OrleansClusterClient.GetGrain<TPlayerGrain>(playerId);
 

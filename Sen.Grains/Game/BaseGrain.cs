@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace Sen
 {
-    public class BaseGrain : Grain
+    public abstract class BaseGrain : Grain
     {
         public static readonly TimeSpan INFINITE_TIMESPAN = TimeSpan.FromMilliseconds(-1);
         /// <summary>
@@ -43,9 +43,12 @@ namespace Sen
         {
             return RegisterTimer(asyncCallback, state, dueTime, period);
         }
+    }
 
+    public abstract class NetworkRpcGrain : Grain
+    {
         /// <summary>
-        /// Use <code>HandleMessage</code> mechanism to handle message in RPC-like
+        /// Use <c>HandleMessage</c> mechanism to handle message in RPC-like
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="data"></param>
@@ -85,6 +88,7 @@ namespace Sen
         private static readonly ObjectPool<MemoryStream> _memStreamPool
             = new DefaultObjectPool<MemoryStream>(new MemoryStreamPooledObjectPolicy(), MemoryStreamPooledObjectPolicy.MaximumRetained);
     }
+
     public class MemoryStreamPooledObjectPolicy : PooledObjectPolicy<MemoryStream>
     {
         public override MemoryStream Create()

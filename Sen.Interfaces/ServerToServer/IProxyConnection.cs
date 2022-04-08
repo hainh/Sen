@@ -1,13 +1,10 @@
-﻿using Orleans.Concurrency;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using Orleans;
+using Orleans.Concurrency;
 using System.Threading.Tasks;
 
 namespace Sen
 {
-    public interface IProxyConnection
+    public interface IProxyConnection : IGrain
     {
         /// <summary>
         /// Read data from client

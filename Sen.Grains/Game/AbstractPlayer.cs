@@ -21,7 +21,7 @@ namespace Sen
     /// </summary>
     /// <typeparam name="TUnionData">MessagePack's Union interface root of all message types</typeparam>
     /// <typeparam name="TGrainState">Grain state</typeparam>
-    public abstract class AbstractPlayer<TUnionData, TState> : BaseGrain, IPlayer where TState : IPlayerState
+    public abstract class AbstractPlayer<TUnionData, TState> : NetworkRpcGrain, IPlayer where TState : IPlayerState
          where TUnionData : IUnionData
     {
         private IClientObserver? _clientObserver;

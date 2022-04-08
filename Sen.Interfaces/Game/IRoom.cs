@@ -1,10 +1,11 @@
 ﻿
+using Orleans;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Sen
 {
-    public interface IRoom : Orleans.IGrainWithStringKey
+    public interface IRoom : IGrain
     {
         ValueTask<long> GetMatchId();
         ValueTask<string> GetRoomName();

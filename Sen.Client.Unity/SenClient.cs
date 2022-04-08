@@ -10,6 +10,7 @@ namespace Sen
         private readonly IMessageHandler messageHandler;
         private string username;
         private string password;
+        private Protocol protocol;
         private bool authorized;
 
         private AbstractClient client;
@@ -18,7 +19,7 @@ namespace Sen
         private int dataCount = 0;
         private int messCount = 0;
         DateTime lastUpdated = DateTime.UtcNow;
-        public bool EnablePerfCount = true;
+        public bool EnablePerfCount = false;
 #endif
 
         public SenClient(string ipAddress, int port, IMessageHandler messageHandler)
@@ -34,6 +35,7 @@ namespace Sen
             System.Diagnostics.Debug.Assert(!string.IsNullOrEmpty(password));
             this.username = username;
             this.password = password;
+            this.protocol = protocol;
             switch (protocol)
             {
                 case Protocol.Tcp:
@@ -47,6 +49,11 @@ namespace Sen
                 default:
                     throw new NotSupportedException($"Protocol {protocol} is not supported");
             }
+        }
+
+        public void Reconnect()
+        {
+            Connect(protocol, username, password);
         }
 
         public void SendAuthorityOnConnected()

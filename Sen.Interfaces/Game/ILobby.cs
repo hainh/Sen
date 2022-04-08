@@ -1,9 +1,10 @@
-﻿using System.Collections.Generic;
+﻿using Orleans;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Sen
 {
-    public interface ILobby: IRoom
+    public interface ILobby: IRoom, IGrain
     {
         /// <summary>
         /// Get all room this looby contains

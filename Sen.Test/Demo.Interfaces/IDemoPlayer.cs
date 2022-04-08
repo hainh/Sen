@@ -3,7 +3,7 @@ using Sen;
 
 namespace Demo.Interfaces
 {
-    public interface IDemoPlayer : IPlayer
+    public interface IDemoPlayer : IPlayer, IGrainWithStringKey
     {
     }
 }

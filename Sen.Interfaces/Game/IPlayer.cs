@@ -1,10 +1,10 @@
-﻿using Orleans.Concurrency;
-using System.Net;
+﻿using Orleans;
+using Orleans.Concurrency;
 using System.Threading.Tasks;
 
 namespace Sen
 {
-    public interface IPlayer : IProxyConnection, Orleans.IGrainWithStringKey
+    public interface IPlayer : IProxyConnection, IGrain
     {
         /// <summary>
         /// Get Player's ID (name)
