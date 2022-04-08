@@ -5,11 +5,11 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Sen.Game
+namespace Sen
 {
     public abstract class AbstractMatchMaker : BaseGrain, IMatchMaker
     {
-        public ValueTask<object?> Register(IMatchablePlayer player)
+        public virtual ValueTask<object?> Register(IMatchablePlayer player)
         {
             throw new NotImplementedException();
         }
