@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 
 namespace Sen
@@ -44,6 +45,9 @@ namespace Sen
         /// Current ip address to connect
         /// </summary>
         public string IpAddress => ipAddress;
+
+        private readonly Dictionary<uint, Action<TUnionData>> callbacks = new Dictionary<uint, Action<TUnionData>>();
+        private uint rpcCounter = 0;
 
 #if DEBUG
         private int dataCount = 0;
@@ -134,14 +138,35 @@ namespace Sen
             }
             ushort serviceCode = (ushort)(buffer[data.Offset] | (buffer[data.Offset + 1] << 8));
             NetworkOptions options = new NetworkOptions();
-            options.SetValues(serviceCode);;
-            var message = MessagePack.MessagePackSerializer.Deserialize<TUnionData>(new ReadOnlyMemory<byte>(buffer, data.Offset + 2, data.Count - 2));
-            messageHandler.DispatchMessage(message, options);
+            options.SetValues(serviceCode);
+            if (options.MessageType == MessageType.Rpc)
+            {
+                var rpcMessage = MessagePack.MessagePackSerializer.Deserialize<RpcMessage<TUnionData>>(new ReadOnlyMemory<byte>(buffer, data.Offset + 2, data.Count - 2));
+                if (callbacks.TryGetValue(rpcMessage.Id, out var callback))
+                {
+                    callback(rpcMessage.UnionData);
+                    callbacks.Remove(rpcMessage.Id);
+                }
+                else
+                {
+#if NET_CLIENT
+                    Console.WriteLine($"No rpc callback with Id: " + rpcMessage.Id);
+#endif
+#if UNITY
+                    // Show warning here
+#endif
+                }
+            }
+            else
+            {
+                TUnionData message = MessagePack.MessagePackSerializer.Deserialize<TUnionData>(new ReadOnlyMemory<byte>(buffer, data.Offset + 2, data.Count - 2));
+                messageHandler.DispatchMessage(message, options);
+            }
         }
 
         readonly MemoryStream memory = new MemoryStream(256 * 1024);
 
-        public void Send(TUnionData message, NetworkOptions options)
+        private void SendMessage<T>(T message, NetworkOptions options)
         {
             memory.SetLength(0);
             memory.Position = 0;
@@ -150,6 +175,11 @@ namespace Sen
             memory.WriteByte((byte)(serviceCode >> 8));
             MessagePack.MessagePackSerializer.Serialize(memory, message);
             client.Send(new ArraySegment<byte>(memory.ToArray()));
+        }
+
+        public void Send(TUnionData message, NetworkOptions options)
+        {
+            SendMessage(message, options);
         }
 
         public void Send(ArraySegment<byte> rawData, NetworkOptions options)
@@ -161,6 +191,21 @@ namespace Sen
             memory.WriteByte((byte)(serviceCode >> 8));
             memory.Write(rawData.Array, rawData.Offset, rawData.Count);
             client.Send(new ArraySegment<byte>(memory.ToArray()));
+        }
+
+        public void Send<T>(T message, NetworkOptions options, Action<TUnionData> callback)
+            where T : TUnionData, IRpcMessage
+        {
+            if (options.MessageType != MessageType.Normal && options.MessageType != MessageType.Rpc)
+            {
+                throw new ArgumentException($"Not supported {nameof(NetworkOptions)}.{nameof(NetworkOptions.MessageType)} = {nameof(MessageType)}.{options.MessageType}");
+            }
+            callbacks[rpcCounter] = callback ?? throw new ArgumentNullException(nameof(callback));
+            options.MessageType = MessageType.Rpc;
+            var rpcMessage = new RpcMessage<TUnionData>() { Id = rpcCounter, UnionData = message };
+            SendMessage(rpcMessage, options);
+            
+            rpcCounter++;
         }
 
         public void Tick(int processLimit)

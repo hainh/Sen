@@ -57,11 +57,31 @@ namespace Sen
         {
             NetworkOptions networkOptions = NetworkOptions.Create((ushort)((data.Value[1] << 8) | data.Value[0]));
             var rawData = new ReadOnlyMemory<byte>(data.Value, sizeof(ushort), data.Value.Length - sizeof(ushort));
-            T wiredData = MessagePackSerializer.Deserialize<T>(rawData);
-            T returnedData = (T)await((dynamic)this).HandleMessage((dynamic)wiredData, networkOptions);
-            if (returnedData != null)
+            T wiredData;
+            RpcMessage<T>? rpcMessage = null;
+            if (networkOptions.MessageType == MessageType.Rpc)
             {
-                byte[] returnedBytes = SerializeData(returnedData, networkOptions);
+                rpcMessage = MessagePackSerializer.Deserialize<RpcMessage<T>>(rawData);
+                wiredData = rpcMessage.UnionData!;
+            }
+            else
+            {
+                wiredData = MessagePackSerializer.Deserialize<T>(rawData);
+            }
+            T returnedData = (T)await((dynamic)this).HandleMessage((dynamic)wiredData, networkOptions);
+            if (returnedData != null || rpcMessage != null)
+            {
+                byte[] returnedBytes;
+                if (rpcMessage != null)
+                {
+                    rpcMessage.UnionData = returnedData;
+                    networkOptions.MessageType = MessageType.Rpc;
+                    returnedBytes = SerializeData(rpcMessage, networkOptions);
+                }
+                else
+                {
+                    returnedBytes = SerializeData(returnedData!, networkOptions);
+                }
                 NetworkOptions.Return(networkOptions);
                 return new Immutable<byte[]>(returnedBytes);
             }
@@ -78,7 +98,7 @@ namespace Sen
             ushort serviceCode = networkOptions.ToServiceCode();
             memStream.WriteByte((byte)serviceCode);
             memStream.WriteByte((byte)(serviceCode >> 8));
-            MessagePack.MessagePackSerializer.Serialize(memStream, message);
+            MessagePackSerializer.Serialize(memStream, message);
 
             byte[] data = memStream.ToArray();
             _memStreamPool.Return(memStream);

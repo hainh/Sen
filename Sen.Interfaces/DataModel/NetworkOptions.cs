@@ -27,6 +27,7 @@ namespace Sen
             Default();
         }
 
+        #region Data
         /// <summary>
         /// Option to encrypt the message
         /// </summary>
@@ -34,21 +35,29 @@ namespace Sen
 
         public Reliability Reliability;
 
+        /// <summary>
+        /// Use internally
+        /// </summary>
+        internal MessageType MessageType;
+        #endregion
+
         public ushort ToServiceCode()
         {
-            return (ushort)((Secure ? 1 : 0) | ((byte)Reliability << 1));
+            return (ushort)((Secure ? 1 : 0) | ((byte)Reliability << 1) | ((byte)MessageType << 5));
         }
 
         public void Default()
         {
             Secure = false;
             Reliability = Reliability.ReliableOrderedSequenced;
+            MessageType = MessageType.Normal;
         }
 
         public void SetValues(ushort serviceCode)
         {
             Secure = (serviceCode & 1) != 0;
             Reliability = (Reliability)((serviceCode & 0b_0001_1110) >> 1);
+            MessageType = (MessageType)((serviceCode & 0b_1110_0000) >> 5);
         }
 
 #if !UNITY

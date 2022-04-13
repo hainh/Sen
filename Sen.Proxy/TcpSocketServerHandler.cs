@@ -71,7 +71,7 @@ namespace Sen.Proxy
                         await ctx.WriteAndFlushAsync(result);
                     }
                 }
-                else
+                else // Authenticate...
                 {
                     var connectionString = Encoding.UTF8.GetString(cast.Array, cast.ArrayOffset, cast.ReadableBytes);
                     var uriComponent = connectionString.Split("@/$/#//", 2);
@@ -86,15 +86,10 @@ namespace Sen.Proxy
                         return;
                     }
 
-                    if (uriComponent[0] == "@@LeafServer@@Hello")
+                    if (uriComponent[0] == "@@LeafServer@@Hello") // Authenticate server2server
                     {
                         Listener? s2sListener = _proxyConfig.ServerToServerListeners.Length == 0 ? null : _proxyConfig.ServerToServerListeners[0];
-                        if (s2sListener == null)
-                        {
-                            await ctx.CloseAsync();
-                            return;
-                        }
-                        if (s2sListener.Port == local_IpEndPoint.Port && local_IpEndPoint.Address.Equals(IPAddress.Loopback))
+                        if (s2sListener != null && s2sListener.Port == local_IpEndPoint.Port && local_IpEndPoint.Address.Equals(IPAddress.Loopback))
                         {
                             IServerToServerGrain s2sConnection = proxyServiceProvider.CreateServerToServerPeer(uriComponent[1]);
                             _proxyConnection = s2sConnection;
@@ -109,7 +104,7 @@ namespace Sen.Proxy
                             return;
                         }
                     }
-                    else
+                    else // Authenticates normal client
                     {
                         try
                         {
@@ -140,9 +135,9 @@ namespace Sen.Proxy
             }
             catch (Exception e)
             {
-                if (logger.IsEnabled(LogLevel.Debug))
+                if (logger.IsEnabled(LogLevel.Error))
                 {
-                    logger.LogDebug(e, e.Message);
+                    logger.LogError(e, e.Message);
                 }
             }
         }

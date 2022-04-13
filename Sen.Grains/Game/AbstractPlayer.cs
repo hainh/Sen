@@ -106,7 +106,7 @@ namespace Sen
         /// <paramref name="message"/> parameter type.
         /// </remarks>
         /// <returns>A <see cref="IUnionData"/> will be serialized and returned to game client or null to send nothing</returns>
-        protected async ValueTask<TUnionData> HandleMessage(TUnionData message, NetworkOptions networkOptions)
+        internal async ValueTask<TUnionData> HandleMessage(TUnionData message, NetworkOptions networkOptions)
         {
             if (profile.State.Room != null)
             {
