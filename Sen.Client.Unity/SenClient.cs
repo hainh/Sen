@@ -194,7 +194,7 @@ namespace Sen
         }
 
         public void Send<T>(T message, NetworkOptions options, Action<TUnionData> callback)
-            where T : TUnionData, IRpcMessage
+            where T : TUnionData
         {
             if (options.MessageType != MessageType.Normal && options.MessageType != MessageType.Rpc)
             {

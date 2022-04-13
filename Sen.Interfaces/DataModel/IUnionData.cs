@@ -8,11 +8,6 @@ namespace Sen
     {
     }
 
-    public interface IRpcMessage
-    {
-        uint RpcId { get; set; }
-    }
-
     [MessagePack.MessagePackObject]
     public class RpcMessage<TUnionData> where TUnionData : IUnionData
     {
